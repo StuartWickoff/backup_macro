@@ -1,32 +1,34 @@
 # Macro Journal
 
-Local-first fundamental research journal. The initial scaffold contains a Rust/WASM UI, a local Axum API, and an SQLite database.
+Journal de recherche fondamentale **local-first** (les données restent sur votre machine). Le projet contient une interface Rust/WASM, une API locale Axum et une base SQLite.
 
-## Current scope (v0.1.0)
+## Périmètre actuel (v0.2)
 
-This is an initial scaffold; the storage hardening iteration (XDG location, sentinel, snapshots) is described in the "Data location" section below.
+Socle initial + itération « sécurisation du stockage » (emplacement XDG, sentinel anti-perte, snapshots vérifiés) — détails dans la section [Emplacement des données](#emplacement-des-données) ci-dessous.
 
-- Dark Research interface.
-- Two-panel Markdown editor with live preview.
-- Markdown preview is sanitized before being inserted into the DOM.
-- Create, list, open, and update research notes.
-- Stable SQLite storage at `~/.local/share/macro-journal/macro_journal.db` (XDG), with an `.initialized` sentinel that prevents silent recreation of an empty database, and verified `VACUUM INTO` snapshots (`POST /api/backups`).
-- External shortcuts to RateProbability and the CFTC.
-- Navigation placeholders for future modules.
+- Interface « Dark Research ».
+- Éditeur Markdown deux panneaux avec aperçu en direct.
+- Aperçu Markdown assaini avant insertion dans le DOM (`ammonia`).
+- Création, liste, ouverture et mise à jour de notes de recherche.
+- Stockage SQLite **stable** : `~/.local/share/macro-journal/macro_journal.db` (convention XDG), indépendant du répertoire courant.
+- Sentinel `.initialized` empêchant la recréation silencieuse d'une base vide après une perte.
+- Snapshots SQLite vérifiés via `VACUUM INTO` (`POST /api/backups`).
+- Raccourcis externes vers RateProbability et la CFTC.
+- Placeholders de navigation pour les futurs modules.
 
-Not implemented yet: currency profiles, weekly outlook, event records, pair analysis, narrative versioning, attachments, full-text search, and export/backup UI.
+Pas encore implémenté : profils de devises, outlook hebdomadaire, relevés d'événements, analyse de paires, versionnage des narratifs, pièces jointes, recherche plein texte, et interface d'export/sauvegarde.
 
-## Stack
+## Stack technique
 
 - Leptos 0.8.23 (CSR / WebAssembly)
 - Axum 0.8.9
 - SQLx 0.9.0 + SQLite
-- Trunk for frontend development/build
-- `pulldown-cmark` + `ammonia` for safe Markdown preview
+- Trunk pour le développement/build du frontend
+- `pulldown-cmark` + `ammonia` pour un aperçu Markdown sûr
 
-## Prerequisites on Linux Mint
+## Prérequis sur Linux Mint
 
-Install the Rust stable toolchain with rustup, then install the WASM target and Trunk:
+Installer la toolchain Rust stable via rustup, puis la cible WASM et Trunk :
 
 ```bash
 rustup update stable
@@ -34,43 +36,43 @@ rustup target add wasm32-unknown-unknown
 cargo install --locked trunk
 ```
 
-The backend uses SQLite through SQLx's bundled SQLite feature. A C toolchain may be needed for native dependencies:
+Le backend utilise SQLite via la fonctionnalité *bundled* de SQLx. Une toolchain C peut être nécessaire pour les dépendances natives :
 
 ```bash
 sudo apt update
 sudo apt install build-essential pkg-config
 ```
 
-## Development
+## Développement
 
-Open two terminals from the project root.
+Ouvrir deux terminaux depuis la racine du projet.
 
-Terminal 1 — API and SQLite:
+Terminal 1 — API et SQLite :
 
 ```bash
 cargo run -p macro-journal-server
 ```
 
-Terminal 2 — Leptos frontend:
+Terminal 2 — frontend Leptos :
 
 ```bash
 cd apps/web
 trunk serve --address 127.0.0.1 --port 8080
 ```
 
-Open:
+Puis ouvrir :
 
 ```text
 http://127.0.0.1:8080
 ```
 
-The API is available at `http://127.0.0.1:3000/api/health`.
+L'API est disponible sur `http://127.0.0.1:3000/api/health`. Utilisez `./run-dev.sh` pour lancer les deux d'un seul geste.
 
-Use `127.0.0.1` consistently during development. The API CORS policy is intentionally restricted to the local Trunk origins above.
+Utiliser systématiquement `127.0.0.1` pendant le développement : la politique CORS de l'API est volontairement restreinte aux origines Trunk locales ci-dessus.
 
-## Production-like local run
+## Lancement local « production »
 
-Build the frontend first:
+Compiler d'abord le frontend :
 
 ```bash
 cd apps/web
@@ -79,27 +81,27 @@ cd ../..
 cargo run -p macro-journal-server --release
 ```
 
-Then open `http://127.0.0.1:3000`. Axum serves the compiled files from `apps/web/dist` after the API routes.
+Puis ouvrir `http://127.0.0.1:3000`. Axum sert les fichiers compilés depuis `apps/web/dist`, après les routes de l'API.
 
-## Data location
+## Emplacement des données
 
-Default database (independent of the current working directory):
+Base par défaut (indépendante du répertoire courant) :
 
 ```text
 ~/.local/share/macro-journal/macro_journal.db
 ```
 
-`XDG_DATA_HOME` is respected when set (absolute paths only, per the XDG specification). Override the database explicitly with:
+`XDG_DATA_HOME` est respecté lorsqu'il est défini (chemins absolus uniquement, conformément à la spécification XDG). Surcharger explicitement la base avec :
 
 ```bash
-MACRO_JOURNAL_DB=/absolute/path/to/macro_journal.db cargo run -p macro-journal-server
+MACRO_JOURNAL_DB=/chemin/absolu/vers/macro_journal.db cargo run -p macro-journal-server
 ```
 
-On first use the data directory, database, and migrations are created, then an `.initialized` sentinel file is written next to the database — only after full success. On every start:
+À la première utilisation, le répertoire de données, la base et les migrations sont créés, puis un fichier sentinel `.initialized` est écrit à côté de la base — **uniquement après un succès complet**. À chaque démarrage :
 
-- Existing database: opened normally (`PRAGMA quick_check` runs first).
-- Database missing while the sentinel exists: the server refuses to start and explains how to restore from a snapshot; it never recreates an empty database silently.
-- Legacy database detected at the old relative location (`<workspace>/data/macro_journal.db`) while the XDG database does not exist: the server refuses to start and explains the migration (use `MACRO_JOURNAL_DB` to keep the old file, or copy it to the XDG path after backing it up). Nothing is moved automatically.
+- Base existante : ouverture normale (un `PRAGMA quick_check` est exécuté au préalable).
+- Base absente alors que le sentinel existe : le serveur **refuse de démarrer** et explique comment restaurer depuis un snapshot ; aucune base vide n'est jamais recréée silencieusement.
+- Ancienne base détectée à l'emplacement relatif historique (`<workspace>/data/macro_journal.db`) alors que la base XDG n'existe pas : le serveur refuse de démarrer et explique la procédure de migration (relancer avec `MACRO_JOURNAL_DB` pour continuer à utiliser l'ancien fichier, ou le copier vers l'emplacement XDG après sauvegarde). **Rien n'est jamais déplacé automatiquement.**
 
 ### Snapshots
 
@@ -107,28 +109,40 @@ On first use the data directory, database, and migrations are created, then an `
 curl -X POST http://127.0.0.1:3000/api/backups
 ```
 
-creates `~/.local/share/macro-journal/backups/macro_journal-YYYYMMDD-HHMM.db` via `VACUUM INTO` (autonomous, compacted snapshot), then reopens it to run `PRAGMA integrity_check` and compares user tables and row counts with the live database. An invalid snapshot is reported as a failure.
+crée `~/.local/share/macro-journal/backups/macro_journal-YYYYMMDD-HHMM.db` via `VACUUM INTO` (snapshot autonome et compacté — pas une copie de fichiers à chaud), puis le rouvre pour exécuter `PRAGMA integrity_check` et comparer les tables utilisateur et leurs compteurs de lignes avec la base en cours. Un snapshot invalide est signalé comme un échec.
 
-The data directory is excluded from Git. The app is bound to localhost and is not configured for LAN or public access.
+Le répertoire de données est exclu de Git. L'application est liée à localhost et n'est pas configurée pour un accès LAN ou public.
 
-## Workspace layout
+## Arborescence du workspace
 
 ```text
 macro-journal/
 ├── apps/
-│   ├── server/       # Axum API, SQLite initialization, migrations
-│   └── web/          # Leptos UI, Trunk config, CSS
+│   ├── server/       # API Axum, initialisation SQLite, migrations
+│   └── web/          # UI Leptos, config Trunk, CSS
 ├── crates/
-│   └── shared/       # API data structures shared by browser/server
-├── docs/
+│   └── shared/       # structures de données partagées navigateur/serveur
+├── docs/             # spécifications et décisions d'architecture
 ├── Cargo.toml
 └── README.md
 ```
 
-## Engineering rules
+## Règles d'ingénierie
 
-1. Facts, interpretations, and AI suggestions must remain distinguishable.
-2. Research notes must retain their history when narrative versioning is added.
-3. A source URL and observation date should be attached to important claims.
-4. External services (RateProbability, CFTC, calendars, news) are referenced rather than reimplemented without a clear reason.
-5. The database schema must remain exportable and documented.
+1. Les faits, les interprétations et les suggestions d'IA doivent rester distinguables.
+2. Les notes de recherche doivent conserver leur historique lorsque le versionnage des narratifs sera ajouté.
+3. Une URL source et une date d'observation doivent être attachées aux affirmations importantes.
+4. Les services externes (RateProbability, CFTC, calendriers, actualités) sont référencés plutôt que réimplémentés, sauf raison claire.
+5. Le schéma de base de données doit rester exportable et documenté.
+
+## Validation
+
+```bash
+cargo fmt --all -- --check
+cargo check --workspace
+cargo check -p macro-journal-web --target wasm32-unknown-unknown
+cargo clippy --workspace --all-targets
+cargo test --workspace
+```
+
+21 tests couvrent les scénarios de stockage (première initialisation, réouverture, redémarrage, base perdue + sentinel, migration en échec, surcharges d'environnement, indépendance du répertoire courant) et les snapshots (création, réouverture, détection de corruption).
