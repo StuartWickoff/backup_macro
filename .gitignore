@@ -1,0 +1,6 @@
+/target
+**/target
+/apps/web/dist
+/data
+.env
+.DS_Store
