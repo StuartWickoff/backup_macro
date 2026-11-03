@@ -13,6 +13,13 @@ if ! command -v trunk >/dev/null 2>&1; then
   exit 1
 fi
 
+echo "Actualisation des graphiques COT depuis la CFTC…"
+if "$ROOT_DIR/cot/update.sh"; then
+  echo "Graphiques COT actualisés."
+else
+  echo "Avertissement : l’actualisation COT a échoué. Le dashboard démarrera avec les derniers graphiques publiés." >&2
+fi
+
 cargo run -p macro-journal-server &
 SERVER_PID=$!
 cleanup() {

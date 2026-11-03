@@ -1,0 +1,76 @@
+{
+  "markets": [
+    {
+      "currency": "AUD",
+      "market_name": "AUSTRALIAN DOLLAR - CHICAGO MERCANTILE EXCHANGE",
+      "chart_file": "aud_net_noncomm_pct_oi.png",
+      "latest_date": "2026-10-27",
+      "is_usd_proxy": false,
+      "is_usd_aggregate": false,
+      "is_stale": false
+    },
+    {
+      "currency": "NZD",
+      "market_name": "NZ DOLLAR - CHICAGO MERCANTILE EXCHANGE",
+      "chart_file": "nzd_net_noncomm_pct_oi.png",
+      "latest_date": "2026-10-27",
+      "is_usd_proxy": false,
+      "is_usd_aggregate": false,
+      "is_stale": false
+    },
+    {
+      "currency": "EUR",
+      "market_name": "EURO FX - CHICAGO MERCANTILE EXCHANGE",
+      "chart_file": "eur_net_noncomm_pct_oi.png",
+      "latest_date": "2026-10-27",
+      "is_usd_proxy": false,
+      "is_usd_aggregate": false,
+      "is_stale": false
+    },
+    {
+      "currency": "GBP",
+      "market_name": "BRITISH POUND - CHICAGO MERCANTILE EXCHANGE",
+      "chart_file": "gbp_net_noncomm_pct_oi.png",
+      "latest_date": "2026-10-27",
+      "is_usd_proxy": false,
+      "is_usd_aggregate": false,
+      "is_stale": false
+    },
+    {
+      "currency": "JPY",
+      "market_name": "JAPANESE YEN - CHICAGO MERCANTILE EXCHANGE",
+      "chart_file": "jpy_net_noncomm_pct_oi.png",
+      "latest_date": "2026-10-27",
+      "is_usd_proxy": false,
+      "is_usd_aggregate": false,
+      "is_stale": false
+    },
+    {
+      "currency": "CHF",
+      "market_name": "SWISS FRANC - CHICAGO MERCANTILE EXCHANGE",
+      "chart_file": "chf_net_noncomm_pct_oi.png",
+      "latest_date": "2026-10-27",
+      "is_usd_proxy": false,
+      "is_usd_aggregate": false,
+      "is_stale": false
+    },
+    {
+      "currency": "CAD",
+      "market_name": "CANADIAN DOLLAR - CHICAGO MERCANTILE EXCHANGE",
+      "chart_file": "cad_net_noncomm_pct_oi.png",
+      "latest_date": "2026-10-27",
+      "is_usd_proxy": false,
+      "is_usd_aggregate": false,
+      "is_stale": false
+    },
+    {
+      "currency": "USD",
+      "market_name": "USD COT PROXY — inverse DXY weights, SEK-free (95.8% covered; no renormalization)",
+      "chart_file": "usd_aggregate_net_noncomm_pct_oi.png",
+      "latest_date": "2026-10-27",
+      "is_usd_proxy": false,
+      "is_usd_aggregate": true,
+      "is_stale": false
+    }
+  ]
+}

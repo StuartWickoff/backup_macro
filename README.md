@@ -48,22 +48,20 @@ sudo apt install build-essential pkg-config
 
 ## Développement
 
-Ouvrir deux terminaux depuis la racine du projet.
-
-Terminal 1 — API et SQLite :
+Préparer l'environnement COT une fois, puis lancer l'application :
 
 ```bash
-cargo run -p macro-journal-server
+python3 -m venv .venv
+.venv/bin/python -m pip install -r cot/requirements.txt
+./run-dev.sh
 ```
 
-Terminal 2 — frontend Leptos :
+`run-dev.sh` actualise les rapports COT et publie les graphiques avant de lancer
+l'API et le frontend. L'année CFTC en cours est retéléchargée à chaque lancement;
+les années précédentes sont réutilisées depuis le cache. Si l'actualisation échoue,
+un avertissement est affiché et le dashboard démarre avec les derniers graphiques publiés.
 
-```bash
-cd apps/web
-trunk serve --address 127.0.0.1 --port 8080
-```
-
-Puis ouvrir :
+Le dashboard est disponible à l'adresse :
 
 ```text
 http://127.0.0.1:8080
@@ -78,6 +76,7 @@ Utiliser systématiquement `127.0.0.1` pendant le développement : la politique 
 Compiler d'abord le frontend :
 
 ```bash
+./cot/update.sh
 cd apps/web
 trunk build --release
 cd ../..

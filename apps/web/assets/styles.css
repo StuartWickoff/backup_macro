@@ -626,6 +626,28 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .currency-new-note { margin-left: auto; flex: 0 0 auto; }
 .currency-notice { min-height: 43px; margin: 13px 0 29px; padding: 9px 13px; display: flex; align-items: center; gap: 9px; border: 1px solid #2b3931; border-radius: 7px; background: #131b17; color: #9ca99e; font-size: 9px; }
 .notice-icon { color: #b6cba8; font-size: 13px; }
+.currency-market-grid { margin: 0 0 30px; display: grid; grid-template-columns: minmax(0,2fr) minmax(230px,.8fr); align-items: start; gap: 13px; }
+.cot-card, .currency-rates-card { min-width: 0; padding: 17px; border: 1px solid #303d36; border-radius: 9px; background: linear-gradient(150deg, #151d19, #121917); }
+.cot-card-heading { margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.cot-card-heading .eyebrow, .currency-rates-card > .eyebrow { color: #91a294; font-size: 7px; }
+.cot-card-heading h2, .currency-rates-card h2 { margin: 7px 0 0; color: #e2e8e0; font: 500 20px/1.2 Georgia, "Times New Roman", serif; }
+.cot-indicator-label { flex: 0 0 auto; padding: 5px 7px; border: 1px solid #39473d; border-radius: 4px; color: #98a699; font: 7px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; letter-spacing: .04em; }
+.cot-chart-meta { margin: 11px 0 8px; display: flex; align-items: center; justify-content: space-between; gap: 8px; color: #89978d; font-size: 9px; }
+.cot-chart-meta strong { color: #c4d2c4; font: 10px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+.cot-stale-notice, .cot-proxy-note { margin: 0 0 9px; color: #d3b98a; font-size: 9px; line-height: 1.5; }
+.cot-proxy-note { color: #a7b3a5; }
+.cot-chart-link { display: block; overflow: hidden; border: 1px solid #242c27; border-radius: 5px; background: #050505; }
+.cot-chart-image { width: 100%; height: auto; display: block; }
+.cot-state { min-height: 120px; margin: 0; display: flex; align-items: center; justify-content: center; color: #98a69c; font-size: 10px; text-align: center; line-height: 1.6; }
+.cot-state-error { color: #e3a39d; }
+.currency-rates-card { min-height: 210px; display: flex; flex-direction: column; }
+.currency-rates-card > p { margin: 10px 0 16px; color: #9ba79d; font-size: 10px; line-height: 1.7; }
+.currency-rate-link { min-height: 58px; margin-top: auto; padding-top: 10px; display: flex; align-items: center; gap: 10px; border-top: 1px solid #27322d; }
+.currency-rate-link > span:nth-child(2) { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.currency-rate-link strong { color: #d6ded7; font-size: 9px; font-weight: 550; }
+.currency-rate-link small { color: #849188; font-size: 8px; }
+.currency-rate-link .resource-arrow { margin-left: auto; }
+.currency-rate-link:hover .resource-arrow { color: var(--accent); transform: translate(2px,-2px); }
 .currency-notes-heading { margin-bottom: 14px; }
 .currency-notes-heading h2 { font-size: 24px; }
 .currency-notes-heading .search-box { width: min(270px, 42%); }
@@ -637,6 +659,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 @media (max-width: 1180px) {
   .currency-index-page, .currency-page { padding-right: 28px; padding-left: 28px; }
   .currency-grid { grid-template-columns: repeat(3,minmax(0,1fr)); }
+  .currency-market-grid { grid-template-columns: minmax(0,1.7fr) minmax(210px,.8fr); }
 }
 @media (max-width: 720px) {
   .currency-index-page, .currency-page { padding: 22px 13px 30px; }
@@ -665,6 +688,10 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
   .currency-identity p { font-size: 9px; line-height: 1.5; }
   .currency-new-note { width: 100%; margin: 4px 0 0; }
   .currency-notice { align-items: flex-start; line-height: 1.55; }
+  .currency-market-grid { grid-template-columns: 1fr; gap: 10px; }
+  .cot-card, .currency-rates-card { padding: 14px; }
+  .cot-card-heading { align-items: flex-start; flex-direction: column; }
+  .currency-rates-card { min-height: 0; }
   .currency-notes-heading { align-items: stretch; flex-direction: column; gap: 12px; }
   .currency-notes-heading .search-box { width: 100%; }
   .unassigned-large-mark { width: 51px; height: 51px; flex-basis: 51px; }

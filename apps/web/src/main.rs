@@ -3,8 +3,25 @@ use leptos::prelude::*;
 use leptos::task::spawn_local;
 use macro_journal_shared::{Entry, EntryDraft};
 use pulldown_cmark::{html, Event, Options, Parser};
+use serde::Deserialize;
 
 const API_BASE: &str = "http://127.0.0.1:3000";
+
+#[derive(Clone, Debug, Deserialize)]
+struct CotChartAsset {
+    currency: String,
+    market_name: String,
+    chart_file: String,
+    latest_date: String,
+    is_usd_proxy: bool,
+    is_usd_aggregate: bool,
+    is_stale: bool,
+}
+
+#[derive(Deserialize)]
+struct CotManifest {
+    markets: Vec<CotChartAsset>,
+}
 
 #[derive(Clone, Copy)]
 struct CurrencyInfo {
@@ -131,6 +148,8 @@ fn App() -> impl IntoView {
     let (save_status, set_save_status) = signal("BASE LOCALE · CONNEXION".to_string());
     let (api_status, set_api_status) = signal(false);
     let (sidebar_visible, set_sidebar_visible) = signal(true);
+    let (cot_manifest, set_cot_manifest) =
+        signal::<Option<Result<Vec<CotChartAsset>, String>>>(None);
 
     let load_entries = move |currency_code: String| {
         spawn_local(async move {
@@ -173,6 +192,10 @@ fn App() -> impl IntoView {
                 set_save_status.set(format!("API INDISPONIBLE · {error}"));
             }
         }
+    });
+
+    spawn_local(async move {
+        set_cot_manifest.set(Some(fetch_cot_manifest().await));
     });
 
     let new_note = move |_| {
@@ -368,8 +391,6 @@ fn App() -> impl IntoView {
                     </div>
                     <div class="topbar-actions">
                         <span class="topbar-private"><span>"●"</span> "LOCAL & PRIVÉ"</span>
-                        <a href="https://rateprobability.com/" target="_blank" rel="noopener noreferrer">"RATE PROBABILITY ↗"</a>
-                        <a href="https://www.cftc.gov/MarketReports/CommitmentsofTraders/index.htm" target="_blank" rel="noopener noreferrer">"CFTC ↗"</a>
                         <div class="avatar">"MJ"</div>
                     </div>
                 </header>
@@ -534,6 +555,108 @@ fn App() -> impl IntoView {
                                 <div class="currency-notice">
                                     <span class="notice-icon">"✳"</span>
                                     <span>"Ce dossier contient uniquement les notes liées à " {currency.code} {". Les analyses restent séparées entre devises."}</span>
+                                </div>
+
+                                <div class="currency-market-grid">
+                                    <section class="cot-card">
+                                        <div class="cot-card-heading">
+                                            <div>
+                                                <div class="eyebrow">"POSITIONNEMENT · CFTC"</div>
+                                                <h2>"Données COT"</h2>
+                                            </div>
+                                            <span class="cot-indicator-label">"INDICATEUR, PAS SIGNAL AUTONOME"</span>
+                                        </div>
+                                        {move || {
+                                            match cot_manifest.get() {
+                                                None => view! {
+                                                    <p class="cot-state">"Chargement des données COT…"</p>
+                                                }.into_any(),
+                                                Some(Err(error)) => view! {
+                                                    <p class="cot-state cot-state-error" role="alert">
+                                                        "Impossible de charger le graphique COT : " {error}
+                                                    </p>
+                                                }.into_any(),
+                                                Some(Ok(markets)) => {
+                                                    match markets.into_iter().find(|market| market.currency == currency.code) {
+                                                        Some(market) => view! {
+                                                            <div class="cot-chart-meta">
+                                                                <span>"Dernière date de référence"</span>
+                                                                <strong>{format_date(&market.latest_date)}</strong>
+                                                            </div>
+                                                            {if market.is_stale {
+                                                                view! {
+                                                                    <p class="cot-stale-notice">
+                                                                        "Graphique masqué : la série Python est ancienne et ne représente pas le positionnement USD actuel."
+                                                                    </p>
+                                                                }.into_any()
+                                                            } else {
+                                                                ().into_any()
+                                                            }}
+                                                            {if market.is_usd_proxy {
+                                                                view! {
+                                                                    <p class="cot-proxy-note">
+                                                                        "USD : proxy pondéré du Dollar Index (DXY)."
+                                                                    </p>
+                                                                }.into_any()
+                                                            } else {
+                                                                ().into_any()
+                                                            }}
+                                                            {if market.is_usd_aggregate {
+                                                                view! {
+                                                                    <p class="cot-proxy-note">
+                                                                        "Proxy COT USD pondéré façon DXY, SEK-free : −(57,6 % EUR + 13,6 % JPY + 11,9 % GBP + 9,1 % CAD + 3,6 % CHF). Ces poids couvrent 95,8 % du DXY; les 4,2 % SEK sont exclus sans renormalisation faute de série COT SEK. Approximation construite à partir du graphique de formation, pas une série USD publiée par la CFTC."
+                                                                    </p>
+                                                                }.into_any()
+                                                            } else {
+                                                                ().into_any()
+                                                            }}
+                                                            {if market.is_stale {
+                                                                ().into_any()
+                                                            } else {
+                                                                view! {
+                                                                    <a class="cot-chart-link" href=format!("/cot/{}", market.chart_file) target="_blank" rel="noopener noreferrer">
+                                                                        <img
+                                                                            class="cot-chart-image"
+                                                                            src=format!("/cot/{}", market.chart_file)
+                                                                            alt=format!("Graphique COT {} — {}", currency.code, market.market_name)
+                                                                            loading="lazy"
+                                                                        />
+                                                                    </a>
+                                                                }.into_any()
+                                                            }}
+                                                        }.into_any(),
+                                                        None => view! {
+                                                            <p class="cot-state">
+                                                                "Aucune série COT suivie pour " {currency.code} "."
+                                                            </p>
+                                                        }.into_any(),
+                                                    }
+                                                }
+                                            }
+                                        }}
+                                    </section>
+
+                                    <section class="currency-rates-card">
+                                        <div class="eyebrow">"PRICING · TAUX IMPLICITES"</div>
+                                        <h2>"Anticipations de taux"</h2>
+                                        <p>
+                                            "Consulte les anticipations de marché pour " {currency.code}
+                                            " sur Rate Probability."
+                                        </p>
+                                        <a
+                                            class="currency-rate-link"
+                                            href="https://rateprobability.com/"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                        >
+                                            <span class="resource-mark">"↗"</span>
+                                            <span>
+                                                <strong>"Ouvrir Rate Probability"</strong>
+                                                <small>"Données et probabilités de taux"</small>
+                                            </span>
+                                            <span class="resource-arrow">"↗"</span>
+                                        </a>
+                                    </section>
                                 </div>
 
                                 <section class="currency-notes">
@@ -826,19 +949,6 @@ fn App() -> impl IntoView {
                                             </div>
                                         </section>
 
-                                        <section class="resources-card">
-                                            <div class="eyebrow">"À PORTÉE DE MAIN"</div>
-                                            <a href="https://rateprobability.com/" target="_blank" rel="noopener noreferrer" class="resource-link">
-                                                <span class="resource-mark">"↗"</span>
-                                                <span><strong>"Anticipations de taux"</strong><small>"Rate Probability"</small></span>
-                                                <span class="resource-arrow">"↗"</span>
-                                            </a>
-                                            <a href="https://www.cftc.gov/MarketReports/CommitmentsofTraders/index.htm" target="_blank" rel="noopener noreferrer" class="resource-link">
-                                                <span class="resource-mark resource-mark-sand">"↗"</span>
-                                                <span><strong>"Positionnement des acteurs"</strong><small>"Rapports CFTC · COT"</small></span>
-                                                <span class="resource-arrow">"↗"</span>
-                                            </a>
-                                        </section>
                                     </aside>
                                 </div>
                             </section>
@@ -923,6 +1033,23 @@ async fn fetch_entries(currency_code: &str) -> Result<Vec<Entry>, String> {
     response
         .json::<Vec<Entry>>()
         .await
+        .map_err(|error| error.to_string())
+}
+
+async fn fetch_cot_manifest() -> Result<Vec<CotChartAsset>, String> {
+    let response = Request::get("/cot/manifest.json")
+        .send()
+        .await
+        .map_err(|error| error.to_string())?;
+
+    if !response.ok() {
+        return Err(format!("HTTP {}", response.status()));
+    }
+
+    response
+        .json::<CotManifest>()
+        .await
+        .map(|manifest| manifest.markets)
         .map_err(|error| error.to_string())
 }
 
