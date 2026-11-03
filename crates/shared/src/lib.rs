@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Entry {
     pub id: i64,
+    pub currency_code: String,
     pub title: String,
     pub content: String,
     pub created_at: String,

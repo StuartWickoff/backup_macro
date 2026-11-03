@@ -39,6 +39,7 @@ struct AppState {
 #[derive(Debug, FromRow)]
 struct DbEntry {
     id: i64,
+    currency_code: String,
     title: String,
     content: String,
     created_at: String,
@@ -49,6 +50,7 @@ impl From<DbEntry> for Entry {
     fn from(row: DbEntry) -> Self {
         Self {
             id: row.id,
+            currency_code: row.currency_code,
             title: row.title,
             content: row.content,
             created_at: row.created_at,
@@ -127,6 +129,14 @@ async fn main() -> anyhow::Result<()> {
             "/api/entries/{id}",
             get(get_entry).put(update_entry).delete(delete_entry),
         )
+        .route(
+            "/api/currencies/{currency_code}/entries",
+            get(list_currency_entries).post(create_currency_entry),
+        )
+        .route(
+            "/api/currencies/{currency_code}/entries/{id}",
+            axum::routing::put(update_currency_entry),
+        )
         .route("/api/backups", post(create_backup_handler))
         .fallback_service(static_files)
         .layer(cors)
@@ -180,8 +190,24 @@ async fn health() -> Json<HealthResponse> {
 
 async fn list_entries(State(state): State<AppState>) -> Result<Json<Vec<Entry>>, ApiFailure> {
     let rows = sqlx::query_as::<_, DbEntry>(
-        "SELECT id, title, content, created_at, updated_at FROM entries ORDER BY updated_at DESC, id DESC",
+        "SELECT id, currency_code, title, content, created_at, updated_at FROM entries ORDER BY updated_at DESC, id DESC",
     )
+    .fetch_all(&state.pool)
+    .await
+    .map_err(ApiFailure::database)?;
+
+    Ok(Json(rows.into_iter().map(Entry::from).collect()))
+}
+
+async fn list_currency_entries(
+    State(state): State<AppState>,
+    Path(currency_code): Path<String>,
+) -> Result<Json<Vec<Entry>>, ApiFailure> {
+    validate_currency_code(&currency_code, true)?;
+    let rows = sqlx::query_as::<_, DbEntry>(
+        "SELECT id, currency_code, title, content, created_at, updated_at FROM entries WHERE currency_code = ? ORDER BY updated_at DESC, id DESC",
+    )
+    .bind(currency_code)
     .fetch_all(&state.pool)
     .await
     .map_err(ApiFailure::database)?;
@@ -194,7 +220,7 @@ async fn get_entry(
     Path(id): Path<i64>,
 ) -> Result<Json<Entry>, ApiFailure> {
     let row = sqlx::query_as::<_, DbEntry>(
-        "SELECT id, title, content, created_at, updated_at FROM entries WHERE id = ?",
+        "SELECT id, currency_code, title, content, created_at, updated_at FROM entries WHERE id = ?",
     )
     .bind(id)
     .fetch_optional(&state.pool)
@@ -215,8 +241,32 @@ async fn create_entry(
     }
 
     let row = sqlx::query_as::<_, DbEntry>(
-        "INSERT INTO entries (title, content) VALUES (?, ?) RETURNING id, title, content, created_at, updated_at",
+        "INSERT INTO entries (title, content) VALUES (?, ?) RETURNING id, currency_code, title, content, created_at, updated_at",
     )
+    .bind(title)
+    .bind(draft.content)
+    .fetch_one(&state.pool)
+    .await
+    .map_err(ApiFailure::database)?;
+
+    Ok((StatusCode::CREATED, Json(Entry::from(row))))
+}
+
+async fn create_currency_entry(
+    State(state): State<AppState>,
+    Path(currency_code): Path<String>,
+    Json(draft): Json<EntryDraft>,
+) -> Result<impl IntoResponse, ApiFailure> {
+    validate_currency_code(&currency_code, false)?;
+    let title = draft.title.trim();
+    if title.is_empty() {
+        return Err(ApiFailure::bad_request("The title cannot be empty."));
+    }
+
+    let row = sqlx::query_as::<_, DbEntry>(
+        "INSERT INTO entries (currency_code, title, content) VALUES (?, ?, ?) RETURNING id, currency_code, title, content, created_at, updated_at",
+    )
+    .bind(currency_code)
     .bind(title)
     .bind(draft.content)
     .fetch_one(&state.pool)
@@ -237,7 +287,7 @@ async fn update_entry(
     }
 
     let row = sqlx::query_as::<_, DbEntry>(
-        "UPDATE entries SET title = ?, content = ?, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now') WHERE id = ? RETURNING id, title, content, created_at, updated_at",
+        "UPDATE entries SET title = ?, content = ?, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now') WHERE id = ? RETURNING id, currency_code, title, content, created_at, updated_at",
     )
     .bind(title)
     .bind(draft.content)
@@ -248,6 +298,44 @@ async fn update_entry(
     .ok_or(ApiFailure::not_found())?;
 
     Ok(Json(Entry::from(row)))
+}
+
+async fn update_currency_entry(
+    State(state): State<AppState>,
+    Path((currency_code, id)): Path<(String, i64)>,
+    Json(draft): Json<EntryDraft>,
+) -> Result<Json<Entry>, ApiFailure> {
+    validate_currency_code(&currency_code, true)?;
+    let title = draft.title.trim();
+    if title.is_empty() {
+        return Err(ApiFailure::bad_request("The title cannot be empty."));
+    }
+
+    let row = sqlx::query_as::<_, DbEntry>(
+        "UPDATE entries SET title = ?, content = ?, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now') WHERE id = ? AND currency_code = ? RETURNING id, currency_code, title, content, created_at, updated_at",
+    )
+    .bind(title)
+    .bind(draft.content)
+    .bind(id)
+    .bind(currency_code)
+    .fetch_optional(&state.pool)
+    .await
+    .map_err(ApiFailure::database)?
+    .ok_or(ApiFailure::not_found())?;
+
+    Ok(Json(Entry::from(row)))
+}
+
+fn validate_currency_code(code: &str, include_unassigned: bool) -> Result<(), ApiFailure> {
+    let valid = matches!(
+        code,
+        "USD" | "EUR" | "GBP" | "JPY" | "CHF" | "CAD" | "AUD" | "NZD" | "CNY"
+    ) || (include_unassigned && code == "UNASSIGNED");
+    if valid {
+        Ok(())
+    } else {
+        Err(ApiFailure::bad_request("Unknown currency code."))
+    }
 }
 
 async fn delete_entry(
@@ -305,7 +393,7 @@ impl ApiFailure {
     fn not_found() -> Self {
         Self {
             status: StatusCode::NOT_FOUND,
-            message: "Entry not found.".into(),
+            message: "Entry not found in this currency folder.".into(),
         }
     }
 
@@ -360,6 +448,14 @@ mod tests {
                 "/api/entries/{id}",
                 get(get_entry).put(update_entry).delete(delete_entry),
             )
+            .route(
+                "/api/currencies/{currency_code}/entries",
+                get(list_currency_entries).post(create_currency_entry),
+            )
+            .route(
+                "/api/currencies/{currency_code}/entries/{id}",
+                axum::routing::put(update_currency_entry),
+            )
             .route("/api/backups", post(create_backup_handler))
             .with_state(AppState {
                 pool,
@@ -374,6 +470,18 @@ mod tests {
     fn create_entry_request(title: &str, content: &str) -> Request<Body> {
         let body = serde_json::json!({ "title": title, "content": content });
         Request::post("/api/entries")
+            .header(header::CONTENT_TYPE, "application/json")
+            .body(Body::from(body.to_string()))
+            .unwrap()
+    }
+
+    fn create_currency_entry_request(
+        currency_code: &str,
+        title: &str,
+        content: &str,
+    ) -> Request<Body> {
+        let body = serde_json::json!({ "title": title, "content": content });
+        Request::post(format!("/api/currencies/{currency_code}/entries"))
             .header(header::CONTENT_TYPE, "application/json")
             .body(Body::from(body.to_string()))
             .unwrap()
@@ -448,6 +556,90 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(response.status(), StatusCode::NOT_FOUND);
+    }
+
+    #[tokio::test]
+    async fn currency_entries_are_isolated_by_folder() {
+        let dir = tempfile::tempdir().unwrap();
+        let app = test_app(dir.path()).await;
+
+        let response = app
+            .clone()
+            .oneshot(create_entry_request("Ancienne note", "à classer"))
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::CREATED);
+
+        let response = app
+            .clone()
+            .oneshot(create_currency_entry_request(
+                "USD",
+                "Vue dollar",
+                "USD only",
+            ))
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::CREATED);
+        let usd_entry: serde_json::Value =
+            serde_json::from_str(&body_string(response).await).unwrap();
+        assert_eq!(usd_entry["currency_code"], "USD");
+        let usd_id = usd_entry["id"].as_i64().unwrap();
+
+        let response = app
+            .clone()
+            .oneshot(create_currency_entry_request("JPY", "Vue yen", "JPY only"))
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::CREATED);
+
+        let response = app
+            .clone()
+            .oneshot(
+                Request::get("/api/currencies/USD/entries")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let usd_entries: serde_json::Value =
+            serde_json::from_str(&body_string(response).await).unwrap();
+        assert_eq!(usd_entries.as_array().unwrap().len(), 1);
+        assert_eq!(usd_entries[0]["title"], "Vue dollar");
+
+        let response = app
+            .clone()
+            .oneshot(
+                Request::get("/api/currencies/UNASSIGNED/entries")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let unassigned: serde_json::Value =
+            serde_json::from_str(&body_string(response).await).unwrap();
+        assert_eq!(unassigned.as_array().unwrap().len(), 1);
+        assert_eq!(unassigned[0]["title"], "Ancienne note");
+
+        let response = app
+            .clone()
+            .oneshot(
+                Request::put(format!("/api/currencies/JPY/entries/{usd_id}"))
+                    .header(header::CONTENT_TYPE, "application/json")
+                    .body(Body::from(
+                        serde_json::json!({ "title": "Mauvais dossier", "content": "x" })
+                            .to_string(),
+                    ))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::NOT_FOUND);
+
+        let response = app
+            .oneshot(create_currency_entry_request("INVALID", "Titre", "Contenu"))
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
     }
 
     #[tokio::test]

@@ -7,16 +7,19 @@ Journal de recherche fondamentale **local-first** (les données restent sur votr
 Socle initial + itération « sécurisation du stockage » (emplacement XDG, sentinel anti-perte, snapshots vérifiés) — détails dans la section [Emplacement des données](#emplacement-des-données) ci-dessous.
 
 - Interface « Dark Research ».
-- Éditeur Markdown deux panneaux avec aperçu en direct.
+- Dossiers réellement cloisonnés pour USD, EUR, GBP, JPY, CHF, CAD, AUD, NZD et CNY (facteur externe) ; chaque note est stockée et modifiable dans son dossier uniquement.
+- Les notes antérieures au classement par devise restent accessibles dans « Notes à classer » ; aucune devise ne leur est attribuée automatiquement.
+- Drapeaux repris des carnets fondamentaux de février et mars.
+- Tableau de bord de recherche avec recherche dans les notes, historique récent, repères méthodologiques et liens vers RateProbability et la CFTC.
+- Lecture des notes dans une mise en page éditoriale ; édition et aperçu Markdown assaini accessibles séparément.
 - Aperçu Markdown assaini avant insertion dans le DOM (`ammonia`).
 - Création, liste, ouverture et mise à jour de notes de recherche.
 - Stockage SQLite **stable** : `~/.local/share/macro-journal/macro_journal.db` (convention XDG), indépendant du répertoire courant.
 - Sentinel `.initialized` empêchant la recréation silencieuse d'une base vide après une perte.
 - Snapshots SQLite vérifiés via `VACUUM INTO` (`POST /api/backups`).
-- Raccourcis externes vers RateProbability et la CFTC.
 - Placeholders de navigation pour les futurs modules.
 
-Pas encore implémenté : profils de devises, outlook hebdomadaire, relevés d'événements, analyse de paires, versionnage des narratifs, pièces jointes, recherche plein texte, et interface d'export/sauvegarde.
+Pas encore implémenté : agrégation et synthèse des dossiers de devises, profils macro détaillés, outlook hebdomadaire, relevés d'événements, analyse de paires, versionnage des narratifs, pièces jointes, recherche plein texte, et interface d'export/sauvegarde.
 
 ## Stack technique
 
