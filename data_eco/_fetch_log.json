@@ -819,10 +819,10 @@
     "currency": "CAD",
     "series_id": "ppi_yoy",
     "source": "Statistics Canada — Industrial Product Price Index (IPPI), Total, year-over-year change; The Daily, 22/10/2026",
-    "url": "https://www150.statcan.gc.ca/n1/daily-quotidien/261022/dq261022a-eng.htm",
+    "url": "https://www150.statcan.gc.ca/t1/tbl1/en/tv.action?pid=1810026502",
     "retrieved": "2026-11-04",
     "pass": "3 (correction manuelle vérifiée)",
-    "notes": "Un seul point importé : septembre 2026 = +14,5 % YoY, publié par StatCan. Le tableau 18-10-0265-02 fournit l'historique, mais les 35 autres observations de la fenêtre n'ont pas été extraites dans cette passe ; aucune interpolation.",
+    "notes": "Un seul point importé : septembre 2026 = +14,5 % YoY, confirmé par Statistics Canada, The Daily du 22/10/2026. Tableau officiel 18-10-0265-02 (variation en %) : URL de cette entrée. Les 35 autres observations de la fenêtre n'ont pas été extraites ; aucune interpolation. Attention : un nouvel échantillon IPPI commence avec la période de référence septembre 2026 et la transition se poursuit jusqu'à décembre 2026.",
     "n_obs": 1,
     "first": "2026-09-01",
     "last": "2026-09-01"
