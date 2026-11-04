@@ -1,6 +1,6 @@
 # AUDIT.md — Audit automatisé de `data_eco/`
 
-Exécuté le 04/11/2026. Données collectées le 04/11/2026 (1ʳᵉ passe) et corrigées le 04/11/2026 (2ᵉ passe). Script : `audit.py` (aucune dépendance externe).
+Rapport de contrôle actualisé le 04/11/2026 après troisième passe. Le script `audit.py` a été renforcé ; exécuter `python3 audit.py` depuis `data_eco/` pour régénérer ce rapport. Les points de contrôle sont des références manuelles : le script ne télécharge pas les sources.
 
 ## Résultat global
 
