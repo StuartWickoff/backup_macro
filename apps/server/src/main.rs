@@ -5,7 +5,7 @@
 //! fichier se limite à l'assemblage : logging, persistance, routes, écoute.
 
 use std::collections::HashMap;
-use std::{env, path::PathBuf};
+use std::{env, path::PathBuf, sync::Arc};
 
 use axum::{
     extract::{Path, State},
@@ -36,6 +36,10 @@ struct AppState {
     /// jamais dérivé du répertoire courant au moment d'une requête.
     backups_dir: PathBuf,
     economic_data_root: PathBuf,
+    /// Sérialise les read-modify-write des historiques CSV économiques :
+    /// deux POST concomitants sur la même devise liraient sinon la même
+    /// version du fichier et perdraient une mise à jour.
+    economic_io_lock: Arc<tokio::sync::Mutex<()>>,
 }
 
 #[derive(Debug, FromRow)]
@@ -115,6 +119,7 @@ async fn main() -> anyhow::Result<()> {
         pool,
         backups_dir: layout.backups_dir.clone(),
         economic_data_root: workspace_root(),
+        economic_io_lock: Arc::new(tokio::sync::Mutex::new(())),
     };
     // Clone bon marché (pool Arc) : le pool reste accessible pour la fermeture
     // ordonnée après l'arrêt du serveur.
@@ -229,6 +234,9 @@ async fn add_economic_observation(
 ) -> Result<(StatusCode, Json<EconomicObservation>), ApiFailure> {
     let path = economic_history_path(&state.economic_data_root, &currency_code)?;
     validate_economic_observation(&currency_code, &series_id, &draft)?;
+    // Section critique CSV : verrouillé (read-modify-write) pour éviter
+    // la perte de mise à jour entre deux POST économiques concurrents.
+    let _io_guard = state.economic_io_lock.lock().await;
     let mut observations = read_economic_history(&path, &currency_code).await?;
     let observation = EconomicObservation {
         series_id,
@@ -915,6 +923,7 @@ mod tests {
                 pool,
                 backups_dir: layout.backups_dir,
                 economic_data_root: dir.to_path_buf(),
+                economic_io_lock: Arc::new(tokio::sync::Mutex::new(())),
             })
     }
 
@@ -1171,6 +1180,80 @@ mod tests {
             std::fs::read_to_string(economic_history_path(dir.path(), "USD").unwrap())
                 .unwrap()
                 .contains("unemployment_rate,2026-10-01,4.1,")
+        );
+    }
+
+    #[tokio::test]
+    async fn concurrent_economic_posts_do_not_lose_observations() {
+        let dir = tempfile::tempdir().unwrap();
+        let app = test_app(dir.path()).await;
+
+        // Scénario 1 : des POST simultanés sur des mois distincts coexistent tous.
+        let mut handles = Vec::new();
+        for month in 1..=6 {
+            let app = app.clone();
+            let date = format!("2026-{:02}-01", month);
+            handles.push(tokio::spawn(async move {
+                let response = app
+                    .clone()
+                    .oneshot(add_economic_observation_request(
+                        "unemployment_rate",
+                        &date,
+                        4.0,
+                        None,
+                    ))
+                    .await
+                    .unwrap();
+                assert_eq!(response.status(), StatusCode::CREATED);
+            }));
+        }
+        for handle in handles {
+            handle.await.unwrap();
+        }
+
+        // Scénario 2 : deux POST simultanés sur la même période produisent
+        // exactement une ligne finale gagnante, intégrale (ni perdue, ni
+        // entremêlée).
+        let (left, right) = tokio::join!(
+            async {
+                app.clone()
+                    .oneshot(add_economic_observation_request(
+                        "ism_services_pmi",
+                        "2026-10-01",
+                        50.0,
+                        None,
+                    ))
+                    .await
+            },
+            async {
+                app.clone()
+                    .oneshot(add_economic_observation_request(
+                        "ism_services_pmi",
+                        "2026-10-01",
+                        51.0,
+                        None,
+                    ))
+                    .await
+            },
+        );
+        assert_eq!(left.unwrap().status(), StatusCode::CREATED);
+        assert_eq!(right.unwrap().status(), StatusCode::CREATED);
+
+        let csv =
+            std::fs::read_to_string(economic_history_path(dir.path(), "USD").unwrap()).unwrap();
+        let unemployment_rows = csv
+            .lines()
+            .filter(|line| line.starts_with("unemployment_rate,2026-"))
+            .count();
+        assert_eq!(unemployment_rows, 6);
+        let ism_rows = csv
+            .lines()
+            .filter(|line| line.starts_with("ism_services_pmi,2026-10-01"))
+            .count();
+        assert_eq!(ism_rows, 1);
+        assert!(
+            csv.contains("ism_services_pmi,2026-10-01,50,")
+                || csv.contains("ism_services_pmi,2026-10-01,51,")
         );
     }
 
