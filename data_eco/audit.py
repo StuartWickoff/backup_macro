@@ -18,6 +18,7 @@ Usage : python3 audit.py   (depuis le répertoire data_eco/)
 Écrit le rapport AUDIT.md et renvoie 0 si aucun échec, 1 sinon.
 """
 import csv
+import datetime
 import json
 import re
 import sys
@@ -227,7 +228,9 @@ else:
 
 # ------------------------------------------------------------------ rapport
 head = ['# AUDIT.md — Audit automatisé de `data_eco/`', '',
-        f'Exécuté le 4 novembre 2026 (2ᵉ passe). Script : `audit.py` (aucune dépendance externe).',
+        f'Exécuté le {datetime.date.today().strftime("%d/%m/%Y")}. Données collectées le'
+        ' 04/11/2026 (1ʳᵉ passe) et corrigées le 04/11/2026 (2ᵉ passe).'
+        ' Script : `audit.py` (aucune dépendance externe).',
         '', '## Résultat global', '',
         f'- **Échecs : {len(failures)}**',
         f'- Avertissements : {len(warnings)}',
