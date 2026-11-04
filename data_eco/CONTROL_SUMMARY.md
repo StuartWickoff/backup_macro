@@ -119,7 +119,7 @@ des dates manquantes (ci-dessous).
 | `gdp_qoq` | 11 | 2026-04 | 2026-T3 | T3 2026 : publication StatCan prévue ~26/11/2026 |
 | `gdp_yoy` | 11 | 2026-04 | 2026-T3 | T3 2026 : publication StatCan prévue ~26/11/2026 |
 | `policy_rate` | 36 | 2026-10 | — | complet |
-| `ppi_yoy` | 1 | 2026-09 | 2023-11 → 2026-08 (35 mois) | seul le point septembre 2026 (+14,5 %) est vérifié et importé ; historique incomplet |
+| `ppi_yoy` | 1 | 2026-09 | nov. 2023–août 2026 et oct. 2026 (35 mois) | seul le point septembre 2026 (+14,5 %) est vérifié et importé ; historique incomplet |
 | `sp_global_manufacturing_pmi` | 2 | 2026-10 | 2023-11, 2023-12, 2024-01, 2024-02, 2024-03, 2024-04, 2024-05, 2024-06, 2024-07, 2024-08, 2024-09, 2024-10, 2024-11, 2024-12, 2025-01, 2025-02, 2025-03, 2025-04, 2025-05, 2025-06, 2025-07, 2025-08, 2025-09, 2025-10, 2025-11, 2025-12, 2026-01, 2026-02, 2026-03, 2026-04, 2026-05, 2026-06, 2026-07, 2026-08 | historique PMI non reconstituable |
 | `sp_global_services_pmi` | 3 | 2026-10 | 2023-11, 2023-12, 2024-01, 2024-02, 2024-03, 2024-04, 2024-05, 2024-06, 2024-07, 2024-08, 2024-09, 2024-10, 2024-11, 2024-12, 2025-01, 2025-02, 2025-03, 2025-04, 2025-05, 2025-06, 2025-07, 2025-08, 2025-09, 2025-10, 2025-11, 2025-12, 2026-01, 2026-02, 2026-03, 2026-04, 2026-05, 2026-06, 2026-07 | idem |
 | `unemployment_rate` | 35 | 2026-09 | 2026-10 | oct. 2026 : publication StatCan (EPA) du 06/11/2026 |
