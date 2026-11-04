@@ -135,6 +135,8 @@ totale.
 
 *`ppi_yoy` (IPPI) : **historique partiel** — le point officiel de septembre 2026 (+14,5 % an/an) a été ajouté. Les 35 autres mois de la fenêtre n'ont pas été importés ; ils restent manquants et ne sont pas estimés.*
 
+*Rupture méthodologique à surveiller : Statistics Canada a commencé à mettre en place un nouvel échantillon de l'IPPI avec la publication de septembre 2026. La transition est progressive jusqu'à la période de référence décembre 2026 ; les indices antérieurs ne sont pas révisés avec le nouvel échantillon. Ne pas interpréter cette transition comme un mouvement économique pur.*
+
 ## AUD — Australie
 
 | Série | Définition / institution | URL | Couverture |
