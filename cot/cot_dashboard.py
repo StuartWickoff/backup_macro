@@ -165,9 +165,15 @@ def export_observations(markets: dict[str, pd.DataFrame], path: Path) -> None:
 
 
 def publish_chart_assets(
-    markets: dict[str, pd.DataFrame], charts_dir: Path, assets_dir: Path
+    markets: dict[str, pd.DataFrame],
+    charts_dir: Path,
+    assets_dir: Path,
+    as_of: pd.Timestamp | None = None,
 ) -> None:
     assets_dir.mkdir(parents=True, exist_ok=True)
+    reference_date = (
+        as_of if as_of is not None else pd.Timestamp.now()
+    ).normalize()
     manifest_markets = []
     for currency, data in markets.items():
         if currency == "USD_INDEX":
@@ -191,7 +197,7 @@ def publish_chart_assets(
                 "latest_date": latest_date.strftime("%Y-%m-%d"),
                 "is_usd_proxy": bool(data["is_usd_proxy"].iloc[-1]),
                 "is_usd_aggregate": bool(data["is_usd_aggregate"].iloc[-1]),
-                "is_stale": (pd.Timestamp.now().normalize() - latest_date).days > 14,
+                "is_stale": (reference_date - latest_date).days > 14,
             }
         )
 

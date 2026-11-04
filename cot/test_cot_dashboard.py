@@ -143,7 +143,9 @@ class PrepareMarketDataTests(unittest.TestCase):
                     b"chart"
                 )
 
-            publish_chart_assets(markets, charts, assets)
+            publish_chart_assets(
+                markets, charts, assets, as_of=pd.Timestamp("2026-10-31")
+            )
 
             manifest = json.loads((assets / "manifest.json").read_text(encoding="utf-8"))
             by_currency = {market["currency"]: market for market in manifest["markets"]}
@@ -157,6 +159,20 @@ class PrepareMarketDataTests(unittest.TestCase):
                 (assets / "usd_aggregate_net_noncomm_pct_oi.png").is_file()
             )
             self.assertFalse((assets / "usd_index_net_noncomm_pct_oi.png").exists())
+
+            # La reference est injectable : loin de la dernière observation,
+            # la staleness passe à TRUE quels que soient le calendrier reel.
+            publish_chart_assets(
+                markets, charts, assets, as_of=pd.Timestamp("2027-01-31")
+            )
+            manifest_later = json.loads(
+                (assets / "manifest.json").read_text(encoding="utf-8")
+            )
+            by_currency_later = {
+                market["currency"]: market for market in manifest_later["markets"]
+            }
+            self.assertTrue(by_currency_later["AUD"]["is_stale"])
+            self.assertTrue(by_currency_later["USD"]["is_stale"])
 
     def test_usd_aggregate_is_the_inverse_of_covered_dxy_weighted_currencies(self) -> None:
         markets = {
