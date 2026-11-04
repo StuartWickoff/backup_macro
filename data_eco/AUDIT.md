@@ -4,8 +4,9 @@ Rapport de contrôle actualisé le 04/11/2026 après troisième passe. Le script
 
 ## Résultat global
 
-- **Échecs : 0**
-- Avertissements : 17 (PMI avec moins de 12 observations, quatre séries CHF/NZD non collectées et PPI canadien partiel)
+- **Exécution du script après la troisième passe : non effectuée ici**
+- Avertissements attendus à la prochaine exécution : 17 (PMI avec moins de 12 observations, quatre séries CHF/NZD non collectées et PPI canadien partiel)
+- Les contrôles structurels devront être confirmés par `python3 audit.py` sur le dépôt cloné
 - Contrôles : structure, schéma (value_secondary vide), dates (1ᵉʳ jour du mois/trimestre), unicité, fenêtre, inventaire des séries, plausibilité, points de contrôle externes, cohérence du journal de collecte.
 
 Total : **1430 observations** sur 8 devises.
