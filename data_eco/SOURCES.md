@@ -1,123 +1,177 @@
 # SOURCES.md — Journal des sources de `data_eco/`
 
-Collecte réalisée le **4 novembre 2026**. Chaque valeur provient exclusivement des
-sources listées ci-dessous ; aucune valeur n'a été inventée ou interpolée.
+Collecte initiale le **4 novembre 2026** (1ʳᵉ passe) ; corrections et compléments le
+**4 novembre 2026** (2ᵉ passe, suite à un audit externe). Chaque valeur provient
+exclusivement des sources listées ci-dessous ; aucune valeur n'a été inventée ou
+interpolée.
+
 Priorité demandée : 1) Investing.com (valeurs « Actual ») — **inaccessible depuis cet
 environnement (HTTP 403, protection anti-robot ; aucun contournement tenté)** ; 2) sources
 officielles (banques centrales, instituts statistiques, S&P Global). Les agrégateurs
-FRED/OECD et DBnomics ont servi d'accès techniques vers des séries officielles lorsque le
-site primaire bloquait l'accès programmatique — chaque usage est signalé.
+FRED/OECD, DBnomics et China Data Portal ont servi d'accès techniques vers des séries
+officielles lorsque le site primaire bloquait l'accès programmatique — chaque usage est
+signalé dans `_fetch_log.json` et, le cas échéant, validé par points de contrôle.
 
-## Conventions
+## Conventions (corrigées le 04/11/2026)
 
 - Format : `series_id,date,value,value_secondary` ; dates ISO (`YYYY-MM-DD`).
-- Séries mensuelles : date = **1er jour du mois d'observation**.
-- Séries trimestrielles : date = 1er jour du **mois de fin de trimestre** (T1→`03-01`,
-  T2→`06-01`, T3→`09-01`, T4→`12-01`).
-- `policy_rate` : taux **en vigueur au 1er jour du mois** (dernier changement ≤ au 1er).
-- `real_gdp_growth` : `value` = croissance t/t-1 (CVS), `value_secondary` = croissance
-  an/an (publiée ou calculée par capitalisation/niveaux, signalé par série).
-- Calculs signalés « YoY calculé » : (I_t/I_t-12 − 1)×100 sur indices officiels, ou
-  capitalisation des 4 taux trimestriels, arrondi à 1 décimale.
-- Fenêtre cible : 2023-11 → 2026-10 (mensuel) et 2023T4 → 2026T3 (trimestriel) ;
-  la couverture réelle dépend des calendriers de publication (cf. CONTROL_SUMMARY.md).
+- **`value_secondary` est vide pour toutes les lignes** : chaque mesure possède son propre
+  `series_id` (ex. `hicp_headline_yoy` et `hicp_core_yoy` ; `gdp_qoq` et `gdp_yoy`).
+- Séries mensuelles : date = **1ᵉʳ jour du mois** d'observation.
+- **Séries trimestrielles : date = 1ᵉʳ jour du trimestre** (T1→`01-01`, T2→`04-01`,
+  T3→`07-01`, T4→`10-01`) — convention demandée, corrigée en 2ᵉ passe.
+- `policy_rate` : taux **en vigueur au 1ᵉʳ jour du mois** (dernier changement ≤ au 1ᵉʳ).
+- `gdp_qoq` : croissance t/t-1 (CVS, non annualisée) ; `gdp_yoy` : croissance an/an
+  (publiée par la source ou calculée par capitalisation — signalé dans `_fetch_log.json`).
+- Fenêtre cible : 2023-11 → 2026-10 (36 mois) et 2023T4 → 2026T3 (12 trimestres) ; la
+  couverture réelle dépend des calendriers de publication — les **dates manquantes exactes**
+  et leurs causes sont listées dans `CONTROL_SUMMARY.md`.
+
+## Zone euro — agrégats EA20 / EA21
+
+La Bulgarie a rejoint la zone euro le **1ᵉʳ janvier 2026** (passage EA20 → EA21).
+Eurostat publie les deux géos (EA20 : composition 2023-2025 ; EA21 : composition 2026,
+rétropolée) ; l'écart entre agrégats est marginal. Convention retenue, série par série :
+
+| Série | Géo | Note |
+|---|---|---|
+| `hicp_headline_yoy`, `hicp_core_yoy` | EA20 | Contrôle EA21 : valeurs identiques sauf 3-4 mois à ±0,1 pt ; flash oct. 2026 (4,0 / 2,5) = communiqué Eurostat du 04/11/2026 |
+| `unemployment_rate` | EA21 | L'agrégat EA20 n'est pas publié pour cette série (une seule définition) |
+| `ppi_yoy` | EA21 | Série intégrale vérifiée observation par observation (EA20 : ≤0,1 pt d'écart) |
+| `gdp_qoq`, `gdp_yoy` | EA20 | T3 2026 = estimation flash du 30/10/2026 |
+
+## Chine — PMI « RatingDog » (ex-Caixin)
+
+L'indice historiquement appelé **Caixin China General PMI** est publié sous la marque
+**« RatingDog China »** depuis août 2025 (changement de sponsor ; l'enquête reste compilée
+et publiée par S&P Global, méthodologie inchangée). Les identifiants
+`caixin_manufacturing_pmi` / `caixin_services_pmi` ont été renommés
+`ratingdog_manufacturing_pmi` / `ratingdog_services_pmi` ; la continuité de la série est
+totale.
+
+## Suivi des révisions / statuts provisoires
+
+- **EUR** : HICP octobre 2026 = estimation **flash** (4,0 / 2,5 — définitif le 18/11/2026) ;
+  PIB T3 2026 = estimation flash (30/10/2026).
+- **PMI** : seules les valeurs **finales** sont utilisées (ex. manufacturing zone euro
+  oct. : flash 52,4 → final 52,7).
+- **RBA** : relèvement à 4,85 % le 04/11/2026 — postérieur à l'observation du 1ᵉʳ octobre
+  (4,60 %) ; apparaîtra dans la fenêtre à la prochaine actualisation.
+- **PBOC** : l'ancre de la politique monétaire est passée de la pension inversée 7 jours à
+  la pension inversée **au jour le jour (1,25 %)** le 02/11/2026 (hors fenêtre) ;
+  `policy_rate` (7 jours) = 1,40 % jusqu'à octobre 2026 inclus.
 
 
-## EUR
+## EUR — Zone euro
 
-| Série | Définition / institution | URL | Collecté le | Couverture |
-|---|---|---|---|---|
-| `policy_rate` | BCE — Deposit facility rate, date of changes (niveau, %) — Data Portal API — Taux en vigueur au 1er jour du mois (dernier changement ≤ au 1er). | https://data-api.ecb.europa.eu/service/data/FM/B.U2.EUR.4F.KR.DFR.LEV?format=csvdata&startPeriod=2023-08-01 | 2026-11-04 | 36 obs, 2023-11-01 → 2026-10-01 |
-| `inflation_rate` | Eurostat ei_cphi_m — Total, variation annuelle %, EA20 — Série euro-indicateurs ; % t/t-12. | https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/ei_cphi_m?format=JSON&lang=EN&geo=EA20&indic=TOTAL&unit=RT12&sinceTimePeriod=2023-11 | 2026-11-04 | 36 obs, 2023-11-01 → 2026-10-01 |
-| `inflation_rate` | Eurostat ei_cphi_m — HICP - All items excluding energy, food, alcohol and tobacco, variation annuelle %, EA20 — Série euro-indicateurs ; % t/t-12. | https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/ei_cphi_m?format=JSON&lang=EN&geo=EA20&indic=CP-HI00XEF&unit=RT12&sinceTimePeriod=2023-11 | 2026-11-04 | 〃 |
-| `ppi_yoy` | Eurostat sts_inpp_m, EA20, B-D (industrie hors construction), PCH_SM — Unité: ['Percentage change compared to same period in previous year'] | https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/sts_inpp_m?format=JSON&lang=EN&geo=EA20&nace_r2=B-D&s_adj=NSA&unit=PCH_SM&sinceTimePeriod=2023-11 | 2026-11-04 | 34 obs, 2023-11-01 → 2026-08-01 |
-| `ppi_yoy` | Eurostat sts_inpp_m — prix à la production industrielle (B-D), % variation annuelle, EA21 — Industrie hors construction, données CVS/brutes NSA. | https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/sts_inpp_m?format=JSON&lang=EN&geo=EA21&nace_r2=B-D&s_adj=NSA&unit=PCH_SM&sinceTimePeriod=2023-11 | 2026-11-04 | 〃 |
-| `unemployment_rate` | Eurostat une_rt_m — taux de chômage, % population active, EA21, corrigé des variations saisonnières — Géo EA21 (inclut la Bulgarie depuis 2026-01). | https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/une_rt_m?format=JSON&lang=EN&geo=EA21&age=TOTAL&sex=T&unit=PC_ACT&s_adj=SA&sinceTimePeriod=2023-11 | 2026-11-04 | 35 obs, 2023-11-01 → 2026-09-01 |
-| `real_gdp_growth` | Eurostat namq_10_gdp — PIB réel B1GQ, unit=CLV_PCH_PRE, EA20 — Volume chaîné. | https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/namq_10_gdp?format=JSON&lang=EN&geo=EA20&na_item=B1GQ&unit=CLV_PCH_PRE&sinceTimePeriod=2023-Q4 | 2026-11-04 | 12 obs, 2023-12-01 → 2026-09-01 |
-| `real_gdp_growth` | Eurostat namq_10_gdp — PIB réel B1GQ, unit=CLV_PCH_SM, EA20 — Volume chaîné, même trimestre année précédente. | https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/namq_10_gdp?format=JSON&lang=EN&geo=EA20&na_item=B1GQ&unit=CLV_PCH_SM&sinceTimePeriod=2023-Q4 | 2026-11-04 | 〃 |
-| `sp_global_manufacturing_pmi` | S&P Global / portail PMI (pmi.spglobal.com) — communiqués de presse « Eurozone Manufacturing », indice désaisonnalisé — Investing.com inaccessible (HTTP 403) ; le portail S&P Global ne liste que les communiqués récents → couverture partielle (~2-4 mois). Chaque communiqué fournit le mois courant et le mois précédent. | https://www.pmi.spglobal.com/Public/Release/PressReleases | 2026-11-04 | 1 obs, 2026-10-01 → 2026-10-01 |
+| Série | Définition / institution | URL | Couverture |
+|---|---|---|---|
+| `policy_rate` | BCE — Deposit facility rate, niveau au 1ᵉʳ jour du mois | https://data-api.ecb.europa.eu/service/data/FM/B.U2.EUR.4F.KR.DFR.LEV?format=csvdata&startPeriod=2023-08-01 | 36 obs (mensuel), 2023-11 → 2026-10 |
+| `hicp_headline_yoy` | Eurostat ei_cphi_m — HICP total, % an/an, EA20 | https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/ei_cphi_m?format=JSON&lang=EN&geo=EA20&indic=TOTAL&unit=RT12&sinceTimePeriod=2023-11 | 36 obs (mensuel), 2023-11 → 2026-10 |
+| `hicp_core_yoy` | Eurostat ei_cphi_m — HICP hors énergie, aliments, alcool et tabac, % an/an, EA20 | https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/ei_cphi_m?format=JSON&lang=EN&geo=EA20&indic=CP-HI00XEF&unit=RT12&sinceTimePeriod=2023-11 | 36 obs (mensuel), 2023-11 → 2026-10 |
+| `ppi_yoy` | Eurostat sts_inpp_m — prix industriels à la production (B-D, NSA), % an/an, EA21 | https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/sts_inpp_m?format=JSON&lang=EN&geo=EA21&nace_r2=B-D&s_adj=NSA&unit=PCH_SM&sinceTimePeriod=2023-11 | 34 obs (mensuel), 2023-11 → 2026-08 |
+| `unemployment_rate` | Eurostat une_rt_m — taux de chômage, % population active, CVS, EA21 | https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/une_rt_m?format=JSON&lang=EN&geo=EA21&age=TOTAL&sex=T&unit=PC_ACT&s_adj=SA&sinceTimePeriod=2023-11 | 35 obs (mensuel), 2023-11 → 2026-09 |
+| `gdp_qoq` | Eurostat namq_10_gdp — PIB réel B1GQ, t/t-1 CVS %, EA20 (T3 2026 : flash) | https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/namq_10_gdp?format=JSON&lang=EN&geo=EA20&na_item=B1GQ&unit=CLV_PCH_PRE&sinceTimePeriod=2023-Q4 | 12 obs (trimestriel), 2023-10 → 2026-07 |
+| `gdp_yoy` | Eurostat namq_10_gdp — PIB réel B1GQ, an/an %, EA20 | https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/namq_10_gdp?format=JSON&lang=EN&geo=EA20&na_item=B1GQ&unit=CLV_PCH_SM&sinceTimePeriod=2023-Q4 | 12 obs (trimestriel), 2023-10 → 2026-07 |
+| `sp_global_manufacturing_pmi` | S&P Global PMI — Eurozone Manufacturing, indice final désaisonnalisé (communiqués) | https://www.pmi.spglobal.com/Public/Release/PressReleases | 2 obs (mensuel), 2026-09 → 2026-10 |
+| `sp_global_services_pmi` | S&P Global PMI — Eurozone Services Business Activity Index (cité dans les communiqués Composite) | https://www.pmi.spglobal.com/Public/Release/PressReleases | 3 obs (mensuel), 2026-08 → 2026-10 |
 
-## GBP
+## GBP — Royaume-Uni
 
-| Série | Définition / institution | URL | Collecté le | Couverture |
-|---|---|---|---|---|
-| `policy_rate` | Bank of England — Official Bank Rate history (table Bank-Rate.asp), % — Taux en vigueur au 1er jour du mois ; changements saisis depuis la table officielle (03/08/23 5,25 ; 01/08/24 5,00 ; 07/11/24 4,75 ; 06/02/25 4,50 ; 08/05/25 4,25 ; 07/08/25 4,00 ; 18/12/25 3,75 — aucun changement en 2026 à la date de collecte). | https://www.bankofengland.co.uk/boeapps/database/Bank-Rate.asp | 2026-11-04 | 36 obs, 2023-11-01 → 2026-10-01 |
-| `inflation_rate` | ONS MM23 — CPI annual rate, all items (D7G7), % — Variation annuelle. | https://www.ons.gov.uk/economy/inflationandpriceindices/timeseries/d7g7/data?format=csv | 2026-11-04 | 35 obs, 2023-11-01 → 2026-09-01 |
-| `inflation_rate` | ONS MM23 — CPI 12mth excluding energy, food, alcoholic beverages & tobacco (mm23.csv) — Variation annuelle ; fichier bulk mm23.csv. | https://www.ons.gov.uk/economy/inflationandpriceindices/datasets/consumerpriceindices | 2026-11-04 | 〃 |
-| `ppi_yoy` | ONS — PPI output prices, all manufactured products (GB7S), indice 2015=100 — YoY calculé : (I_t/I_t-12 − 1)×100, arrondi à 1 décimale. | https://www.ons.gov.uk/economy/inflationandpriceindices/timeseries/gb7s/data?format=csv | 2026-11-04 | 35 obs, 2023-11-01 → 2026-09-01 |
-| `unemployment_rate` | ONS MGSX — Unemployment rate (aged 16 and over, seasonally adjusted), % — Enquête sur la population active, série mensuelle. | https://www.ons.gov.uk/employmentandlabourmarket/peoplenotinwork/unemployment/timeseries/mgsx/data?format=csv | 2026-11-04 | 33 obs, 2023-11-01 → 2026-07-01 |
-| `real_gdp_growth` | ONS IHYQ — GDP quarter on quarter growth, CVM SA % | https://www.ons.gov.uk/economy/grossdomesticproductgdp/timeseries/ihyq/data?format=csv | 2026-11-04 | 11 obs, 2023-12-01 → 2026-06-01 |
-| `real_gdp_growth` | ONS IHYP — GDP year on year growth, CVM SA % | https://www.ons.gov.uk/economy/grossdomesticproductgdp/timeseries/ihyp/data?format=csv | 2026-11-04 | 〃 |
-| `real_gdp_growth` | ONS IHYQ — YoY calculé par capitalisation des 4 taux t/t-1 — Calcul : Π(1+g_t/100) − 1 sur les 4 trimestres, arrondi à 1 décimale. | https://www.ons.gov.uk/economy/grossdomesticproductgdp/timeseries/ihyq/data?format=csv | 2026-11-04 | 〃 |
-| `sp_global_manufacturing_pmi` | S&P Global / portail PMI (pmi.spglobal.com) — communiqués de presse « Uk Manufacturing », indice désaisonnalisé — Investing.com inaccessible (HTTP 403) ; le portail S&P Global ne liste que les communiqués récents → couverture partielle (~2-4 mois). Chaque communiqué fournit le mois courant et le mois précédent. | https://www.pmi.spglobal.com/Public/Release/PressReleases | 2026-11-04 | 2 obs, 2026-09-01 → 2026-10-01 |
-| `sp_global_services_pmi` | S&P Global / portail PMI (pmi.spglobal.com) — communiqués de presse « Uk Services », indice désaisonnalisé — Investing.com inaccessible (HTTP 403) ; le portail S&P Global ne liste que les communiqués récents → couverture partielle (~2-4 mois). Chaque communiqué fournit le mois courant et le mois précédent. | https://www.pmi.spglobal.com/Public/Release/PressReleases | 2026-11-04 | 2 obs, 2026-09-01 → 2026-10-01 |
+| Série | Définition / institution | URL | Couverture |
+|---|---|---|---|
+| `policy_rate` | Bank of England — Official Bank Rate, taux au 1ᵉʳ jour du mois | https://www.bankofengland.co.uk/boeapps/database/Bank-Rate.asp | 36 obs (mensuel), 2023-11 → 2026-10 |
+| `cpi_headline_yoy` | ONS MM23 — CPI annual rate, all items (D7G7) | https://www.ons.gov.uk/economy/inflationandpriceindices/timeseries/d7g7/data?format=csv | 35 obs (mensuel), 2023-11 → 2026-09 |
+| `cpi_core_yoy` | ONS MM23 — CPI 12 mois hors énergie, aliments, boissons alcoolisées et tabac | https://www.ons.gov.uk/economy/inflationandpriceindices/datasets/consumerpriceindices | 35 obs (mensuel), 2023-11 → 2026-09 |
+| `ppi_yoy` | ONS — PPI output prices, all manufactured products (GB7S), YoY calculé sur l'indice 2015=100 | https://www.ons.gov.uk/economy/inflationandpriceindices/timeseries/gb7s/data?format=csv | 35 obs (mensuel), 2023-11 → 2026-09 |
+| `unemployment_rate` | ONS MGSX — taux de chômage (16 ans et plus, CVS), EPA | https://www.ons.gov.uk/employmentandlabourmarket/peoplenotinwork/unemployment/timeseries/mgsx/data?format=csv | 33 obs (mensuel), 2023-11 → 2026-07 |
+| `gdp_qoq` | ONS IHYQ — GDP quarter on quarter growth, CVM SA % | https://www.ons.gov.uk/economy/grossdomesticproductgdp/timeseries/ihyq/data?format=csv | 11 obs (trimestriel), 2023-10 → 2026-04 |
+| `gdp_yoy` | ONS IHYP — GDP year on year growth, CVM SA % | https://www.ons.gov.uk/economy/grossdomesticproductgdp/timeseries/ihyp/data?format=csv | 11 obs (trimestriel), 2023-10 → 2026-04 |
+| `sp_global_manufacturing_pmi` | S&P Global PMI — UK Manufacturing (communiqués) | https://www.pmi.spglobal.com/Public/Release/PressReleases | 2 obs (mensuel), 2026-09 → 2026-10 |
+| `sp_global_services_pmi` | S&P Global PMI — UK Services (communiqués) | https://www.pmi.spglobal.com/Public/Release/PressReleases | 2 obs (mensuel), 2026-09 → 2026-10 |
 
-## JPY
+## JPY — Japon
 
-| Série | Définition / institution | URL | Collecté le | Couverture |
-|---|---|---|---|---|
-| `policy_rate` | Bank of Japan — taux directeur (taux call overnight non garanti / facilité de dépôt complémentaire), communiqués des MPM — Taux en vigueur au 1er du mois. -0,1 % jusqu'au 19/03/2024 ; 0,1 % (nouveau cadre, cible 0 à 0,1 %) ; 0,25 % (31/07/24) ; 0,5 % (24/01/25) ; 0,75 % (19/12/25) ; 1,0 % (16/06/26) ; 1,25 % (18/09/26). | https://www.boj.or.jp/en/mopo/mpmdeci/index.htm | 2026-11-04 | 36 obs, 2023-11-01 → 2026-10-01 |
-| `inflation_rate` | Statistics Bureau of Japan — CPI All items (STATJP/CPIm via DBnomics), YoY calculé — Indice (base 2020=100) ; YoY = (I_t/I_t-12 − 1)×100, arrondi à 1 décimale. | https://api.db.nomics.world/v22/series/STATJP/CPIm/001?observations=1&format=json | 2026-11-04 | 35 obs, 2023-11-01 → 2026-09-01 |
-| `inflation_rate` | Statistics Bureau of Japan — CPI All items, less fresh food (STATJP/CPIm via DBnomics), YoY calculé — « All items, less fresh food » = CPI sous-jacent officiel du Japon. | https://api.db.nomics.world/v22/series/STATJP/CPIm/733?observations=1&format=json | 2026-11-04 | 〃 |
-| `ppi_yoy` | Bank of Japan — Corporate Goods Price Index, All commodities, % variation annuelle — Extraits des PDF mensuels cgpiYYMM.pdf (colonne « Yearly » = YoY). | https://www.boj.or.jp/en/statistics/pi/cgpi_release/index.htm | 2026-11-04 | 35 obs, 2023-11-01 → 2026-09-01 |
-| `unemployment_rate` | Statistics Bureau of Japan — Monthly – Unemployment rate – Both sexes – Percent – seasonally adjusted (STATJP/MIm via DBnomics) — Enquête sur la force de travail. | https://api.db.nomics.world/v22/series/STATJP/MIm/M.UR.B.PCT.SA?observations=1&format=json | 2026-11-04 | 35 obs, 2023-11-01 → 2026-09-01 |
-| `real_gdp_growth` | Cabinet Office ESRI — Quarterly Estimates of GDP, réel, dépenses ; ritu-jk (t/t-1 CVS) et ritu-jg (YoY), release 2026Q2 2e estim. (qe262_2) — Dernier point : 2026T2 (le T3 paraît mi-novembre). | https://www.esri.cao.go.jp/en/sna/data/sokuhou/files/toukei_top.html | 2026-11-04 | 11 obs, 2023-12-01 → 2026-06-01 |
-| `sp_global_manufacturing_pmi` | S&P Global / portail PMI (pmi.spglobal.com) — communiqués de presse « Japan Manufacturing », indice désaisonnalisé — Investing.com inaccessible (HTTP 403) ; le portail S&P Global ne liste que les communiqués récents → couverture partielle (~2-4 mois). Chaque communiqué fournit le mois courant et le mois précédent. | https://www.pmi.spglobal.com/Public/Release/PressReleases | 2026-11-04 | 2 obs, 2026-09-01 → 2026-10-01 |
-| `sp_global_services_pmi` | S&P Global / portail PMI (pmi.spglobal.com) — communiqués de presse « Japan Services », indice désaisonnalisé — Investing.com inaccessible (HTTP 403) ; le portail S&P Global ne liste que les communiqués récents → couverture partielle (~2-4 mois). Chaque communiqué fournit le mois courant et le mois précédent. | https://www.pmi.spglobal.com/Public/Release/PressReleases | 2026-11-04 | 2 obs, 2026-08-01 → 2026-09-01 |
+| Série | Définition / institution | URL | Couverture |
+|---|---|---|---|
+| `policy_rate` | Bank of Japan — taux directeur (communiqués MPM), taux au 1ᵉʳ jour du mois | https://www.boj.or.jp/en/mopo/mpmdeci/index.htm | 36 obs (mensuel), 2023-11 → 2026-10 |
+| `cpi_headline_yoy` | Statistics Bureau of Japan — CPI all items (STATJP/CPIm 001 via DBnomics), YoY calculé | https://api.db.nomics.world/v22/series/STATJP/CPIm/001?observations=1&format=json | 35 obs (mensuel), 2023-11 → 2026-09 |
+| `cpi_core_yoy` | Statistics Bureau of Japan — CPI all items, less fresh food (CPIm 733 via DBnomics), YoY calculé — « core » officiel japonais | https://api.db.nomics.world/v22/series/STATJP/CPIm/733?observations=1&format=json | 35 obs (mensuel), 2023-11 → 2026-09 |
+| `ppi_yoy` | Bank of Japan — Corporate Goods Price Index, all commodities, % an/an (PDF mensuels) | https://www.boj.or.jp/en/statistics/pi/cgpi_release/index.htm | 35 obs (mensuel), 2023-11 → 2026-09 |
+| `unemployment_rate` | Statistics Bureau of Japan — taux de chômage mensuel, CVS (STATJP/MIm via DBnomics) | https://api.db.nomics.world/v22/series/STATJP/MIm/M.UR.B.PCT.SA?observations=1&format=json | 35 obs (mensuel), 2023-11 → 2026-09 |
+| `gdp_qoq` | Cabinet Office ESRI — Quarterly Estimates of GDP, t/t-1 CVS (ritu-jk, T2 2026 2ᵉ estim.) | https://www.esri.cao.go.jp/en/sna/data/sokuhou/files/toukei_top.html | 11 obs (trimestriel), 2023-10 → 2026-04 |
+| `gdp_yoy` | Cabinet Office ESRI — ritu-jg (an/an) | https://www.esri.cao.go.jp/en/sna/data/sokuhou/files/toukei_top.html | 11 obs (trimestriel), 2023-10 → 2026-04 |
+| `sp_global_manufacturing_pmi` | S&P Global PMI (au Jibun Bank) — Japan Manufacturing (communiqués) | https://www.pmi.spglobal.com/Public/Release/PressReleases | 2 obs (mensuel), 2026-09 → 2026-10 |
+| `sp_global_services_pmi` | S&P Global PMI (au Jibun Bank) — Japan Services (communiqués) | https://www.pmi.spglobal.com/Public/Release/PressReleases | 2 obs (mensuel), 2026-08 → 2026-09 |
 
-## CHF
+## CHF — Suisse
 
-| Série | Définition / institution | URL | Collecté le | Couverture |
-|---|---|---|---|---|
-| `policy_rate` | Banque nationale suisse — taux directeur (portail de données, cube snbgwdzid, dimension « SNB policy rate ») — Taux en vigueur au 1er jour du mois (dernier changement ≤ au 1er). | https://data.snb.ch/api/cube/snbgwdzid/data/csv/en | 2026-11-04 | 36 obs, 2023-11-01 → 2026-10-01 |
-| `inflation_rate` | Eurostat ei_cphi_m geo=CH — HICP Total, variation annuelle % (IPC harmonisé suisse, compilé par l'OFS) — Choix de l'HICP : le sous-jacent de l'IPC national (LIK) n'est pas accessible programmatiquement ; l'HICP headline national est disponible via le portail BNS (cube plkopr) et sert de contrôle. | https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/ei_cphi_m?format=JSON&lang=EN&geo=CH&indic=TOTAL&unit=RT12&sinceTimePeriod=2023-11 | 2026-11-04 | 35 obs, 2023-11-01 → 2026-09-01 |
-| `inflation_rate` | Eurostat ei_cphi_m geo=CH — HICP HICP - All items excluding energy, food, alcohol and tobacco, variation annuelle % (IPC harmonisé suisse, compilé par l'OFS) — Choix de l'HICP : le sous-jacent de l'IPC national (LIK) n'est pas accessible programmatiquement ; l'HICP headline national est disponible via le portail BNS (cube plkopr) et sert de contrôle. | https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/ei_cphi_m?format=JSON&lang=EN&geo=CH&indic=CP-HI00XEF&unit=RT12&sinceTimePeriod=2023-11 | 2026-11-04 | 〃 |
-| `ppi_yoy` | Eurostat sts_inpp_m geo=CH — indice des prix à la production (B-D), % variation annuelle (source primaire : OFS) — Industrie hors construction. | https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/sts_inpp_m?format=JSON&lang=EN&geo=CH&nace_r2=B-D&s_adj=NSA&unit=PCH_SM&sinceTimePeriod=2023-11 | 2026-11-04 | 35 obs, 2023-11-01 → 2026-09-01 |
-| `unemployment_rate` | FRED (OECD Infra-Annual Labor Statistics) LRHUTTTTCHQ156S — taux de chômage trimestriel CVS, % (source primaire : SECO / définition BIT) — Série trimestrielle (l'enquête suisse est mensuelle mais l'accès direct SECO n'est pas disponible ici). | https://fred.stlouisfed.org/graph/fredgraph.csv?id=LRHUTTTTCHQ156S | 2026-11-04 | 11 obs, 2023-12-01 → 2026-06-01 |
-| `real_gdp_growth` | FRED (OECD National Accounts) NAEXKP01CHQ657S — PIB réel, croissance t/t-1 CVS % (source primaire : SECO, comptes nationaux trimestriels) — YoY calculé par capitalisation des 4 taux trimestriels. Contrôle croisé effectué avec SECO/DBnomics (qna_e_csa). | https://fred.stlouisfed.org/graph/fredgraph.csv?id=NAEXKP01CHQ657S | 2026-11-04 | 11 obs, 2023-12-01 → 2026-06-01 |
+| Série | Définition / institution | URL | Couverture |
+|---|---|---|---|
+| `policy_rate` | Banque nationale suisse — taux directeur (portail de données, cube snbgwdzid), taux au 1ᵉʳ jour du mois | https://data.snb.ch/api/cube/snbgwdzid/data/csv/en | 36 obs (mensuel), 2023-11 → 2026-10 |
+| `cpi_headline_yoy` | OFS — IPC national (Landesindex), total, glissement annuel, base déc. 2025=100 (fichier maître du 03/11/2026) — remplace l'HICP (2ᵉ passe, conformément à la demande initiale) | https://www.bfs.admin.ch/en/newnsb/UA8hylpLYO6i | 36 obs (mensuel), 2023-11 → 2026-10 |
+| `cpi_core_yoy` | OFS — « Kerninflation 1 » : IPC national hors produits frais et saisonniers, énergie et carburants | https://www.bfs.admin.ch/en/newnsb/UA8hylpLYO6i | 36 obs (mensuel), 2023-11 → 2026-10 |
+| `ppi_yoy` | Eurostat sts_inpp_m geo=CH — prix à la production (B-D), % an/an (source primaire : OFS) | https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/sts_inpp_m?format=JSON&lang=EN&geo=CH&nace_r2=B-D&s_adj=NSA&unit=PCH_SM&sinceTimePeriod=2023-11 | 35 obs (mensuel), 2023-11 → 2026-09 |
+| `unemployment_rate` | FRED (OECD IALS) LRHUTTTTCHQ156S — taux de chômage trimestriel CVS, définition BIT (source primaire : OFS/SECO) | https://fred.stlouisfed.org/graph/fredgraph.csv?id=LRHUTTTTCHQ156S | 11 obs (trimestriel), 2023-10 → 2026-04 |
+| `gdp_qoq` | FRED (OECD) NAEXKP01CHQ657S — PIB réel t/t-1 CVS % (source primaire : SECO ; contrôle croisé SECO/DBnomics) | https://fred.stlouisfed.org/graph/fredgraph.csv?id=NAEXKP01CHQ657S | 11 obs (trimestriel), 2023-10 → 2026-04 |
+| `gdp_yoy` | YoY calculé par capitalisation des 4 taux trimestriels (FRED NAEXKP01CHQ657S) | https://fred.stlouisfed.org/graph/fredgraph.csv?id=NAEXKP01CHQ657S | 11 obs (trimestriel), 2023-10 → 2026-04 |
 
-## CAD
+*PMI suisses (SVME/procure.ch, services) : **non collectés** — aucune source programmatique accessible (portail S&P Global sans communiqués suisses, Investing.com bloqué). Dernière valeur connue au 04/11/2026 : manufacturing oct. = 56,7 (sept. 55,3), publication SVME du 02/11/2026.*
 
-| Série | Définition / institution | URL | Collecté le | Couverture |
-|---|---|---|---|---|
-| `policy_rate` | Banque du Canada — taux cible du financement à un jour (série CBC20210 « Target for the overnight rate », API Valet) — Taux en vigueur au 1er jour du mois (dernier changement ≤ au 1er). | https://www.bankofcanada.ca/valet/observations/CBC20210/json?start_date=2023-10-01 | 2026-11-04 | 36 obs, 2023-11-01 → 2026-10-01 |
-| `inflation_rate` | Banque du Canada — CPI-trim et CPI-median, % variation annuelle (API Valet) — Mesures d'inflation fondamentale ; value=trim, value_secondary=median. | https://www.bankofcanada.ca/valet/observations/CPI_TRIM/json?start_date=2023-10-01 | 2026-11-04 | 35 obs, 2023-11-01 → 2026-09-01 |
-| `unemployment_rate` | FRED (OECD Infra-Annual Labor Statistics) LRHUTTTTCAM156S — taux de chômage mensuel CVS, % (source primaire : Enquête sur la population active, StatCan) — Série mensuelle ; 15 ans et plus. | https://fred.stlouisfed.org/graph/fredgraph.csv?id=LRHUTTTTCAM156S | 2026-11-04 | 34 obs, 2023-11-01 → 2026-08-01 |
-| `real_gdp_growth` | FRED (OECD National Accounts) NAEXKP01CAQ657S — PIB réel par les dépenses, croissance t/t-1 CVS % (source primaire : StatCan) — YoY calculé par capitalisation des 4 taux trimestriels, arrondi à 1 décimale. | https://fred.stlouisfed.org/graph/fredgraph.csv?id=NAEXKP01CAQ657S | 2026-11-04 | 11 obs, 2023-12-01 → 2026-06-01 |
-| `cpi_common` | Banque du Canada — CPI-common, % variation annuelle (API Valet) — Mesure d'inflation fondamentale (modèle à facteur commun). | https://www.bankofcanada.ca/valet/observations/CPI_COMMON/json?start_date=2023-10-01 | 2026-11-04 | 35 obs, 2023-11-01 → 2026-09-01 |
-| `sp_global_manufacturing_pmi` | S&P Global / portail PMI (pmi.spglobal.com) — communiqués de presse « Canada Manufacturing », indice désaisonnalisé — Investing.com inaccessible (HTTP 403) ; le portail S&P Global ne liste que les communiqués récents → couverture partielle (~2-4 mois). Chaque communiqué fournit le mois courant et le mois précédent. | https://www.pmi.spglobal.com/Public/Release/PressReleases | 2026-11-04 | 2 obs, 2026-09-01 → 2026-10-01 |
-| `sp_global_services_pmi` | S&P Global / portail PMI (pmi.spglobal.com) — communiqués de presse « Canada Services », indice désaisonnalisé — Investing.com inaccessible (HTTP 403) ; le portail S&P Global ne liste que les communiqués récents → couverture partielle (~2-4 mois). Chaque communiqué fournit le mois courant et le mois précédent. | https://www.pmi.spglobal.com/Public/Release/PressReleases | 2026-11-04 | 1 obs, 2026-09-01 → 2026-09-01 |
+## CAD — Canada
 
-## AUD
+| Série | Définition / institution | URL | Couverture |
+|---|---|---|---|
+| `policy_rate` | Banque du Canada — cible du taux de financement à un jour (API Valet, CBC20210), taux au 1ᵉʳ jour du mois | https://www.bankofcanada.ca/valet/observations/CBC20210/json?start_date=2023-10-01 | 36 obs (mensuel), 2023-11 → 2026-10 |
+| `cpi_trimmed_yoy` | Banque du Canada — CPI-trim, % an/an (API Valet CPI_TRIM) | https://www.bankofcanada.ca/valet/observations/CPI_TRIM/json?start_date=2023-10-01 | 35 obs (mensuel), 2023-11 → 2026-09 |
+| `cpi_median_yoy` | Banque du Canada — CPI-median, % an/an (API Valet CPI_MEDIAN) | https://www.bankofcanada.ca/valet/observations/CPI_MEDIAN/json?start_date=2023-10-01 | 35 obs (mensuel), 2023-11 → 2026-09 |
+| `cpi_common` | Banque du Canada — CPI-common, % an/an (API Valet CPI_COMMON) | https://www.bankofcanada.ca/valet/observations/CPI_COMMON/json?start_date=2023-10-01 | 35 obs (mensuel), 2023-11 → 2026-09 |
+| `unemployment_rate` | FRED (OECD IALS) LRHUTTTTCAM156S (source primaire : StatCan, EPA) ; sept. 2026 ajouté depuis StatCan (LFS du 09/10/2026) | https://fred.stlouisfed.org/graph/fredgraph.csv?id=LRHUTTTTCAM156S | 35 obs (mensuel), 2023-11 → 2026-09 |
+| `gdp_qoq` | FRED (OECD) NAEXKP01CAQ657S — PIB réel par les dépenses t/t-1 CVS % (source primaire : StatCan) | https://fred.stlouisfed.org/graph/fredgraph.csv?id=NAEXKP01CAQ657S | 11 obs (trimestriel), 2023-10 → 2026-04 |
+| `gdp_yoy` | YoY calculé par capitalisation des 4 taux trimestriels (FRED NAEXKP01CAQ657S) | https://fred.stlouisfed.org/graph/fredgraph.csv?id=NAEXKP01CAQ657S | 11 obs (trimestriel), 2023-10 → 2026-04 |
+| `sp_global_manufacturing_pmi` | S&P Global PMI — Canada Manufacturing (communiqués) | https://www.pmi.spglobal.com/Public/Release/PressReleases | 2 obs (mensuel), 2026-09 → 2026-10 |
+| `sp_global_services_pmi` | S&P Global PMI — Canada Services (communiqués) | https://www.pmi.spglobal.com/Public/Release/PressReleases | 3 obs (mensuel), 2026-08 → 2026-10 |
 
-| Série | Définition / institution | URL | Collecté le | Couverture |
-|---|---|---|---|---|
-| `policy_rate` | Reserve Bank of Australia — Cash Rate Target (table F1.1, série FIRMMCRT, via DBnomics) — Taux en vigueur au 1er jour du mois (dernier changement ≤ au 1er). | https://api.db.nomics.world/v22/series/RBA/F1.1/FIRMMCRT?observations=1&format=json | 2026-11-04 | 36 obs, 2023-11-01 → 2026-10-01 |
-| `policy_rate` | Reserve Bank of Australia — Cash Rate Target, table officielle des décisions (08/11/23 4,35 ; 19/02/25 4,10 ; 21/05/25 3,85 ; 13/08/25 3,60 ; 04/02/26 3,85 ; 18/03/26 4,10 ; 06/05/26 4,35 ; 30/09/26 4,60 ; 04/11/26 4,85 hors fenêtre) — Taux en vigueur au 1er jour du mois. Croisé avec la série quotidienne FIRMMCRT (table RBA F1.1, via DBnomics). | https://www.rba.gov.au/statistics/cash-rate/ | 2026-11-04 | 〃 |
-| `inflation_rate` | Reserve Bank of Australia table G1 — trimmed mean inflation, year-ended %, excluding interest charges and tax changes (via DBnomics) — Série trimestrielle (le trimmed mean/weighted median mensuel de l'ABS n'est accessible que depuis avril 2024 dans les fichiers publiés). | https://api.db.nomics.world/v22/series/RBA/G1/GCPIOCPMTMYP?observations=1&format=json | 2026-11-04 | 12 obs, 2023-12-01 → 2026-09-01 |
-| `inflation_rate` | Reserve Bank of Australia table G1 — weighted median inflation, year-ended %, excluding interest charges and tax changes (via DBnomics) — Série trimestrielle (le trimmed mean/weighted median mensuel de l'ABS n'est accessible que depuis avril 2024 dans les fichiers publiés). | https://api.db.nomics.world/v22/series/RBA/G1/GCPIOCPMWMYP?observations=1&format=json | 2026-11-04 | 〃 |
-| `ppi_yoy` | ABS 6427.0 tableau 1 — Producer Price Index, Final, Total, % variation an/an (série A2314867K) — L'indice des prix à la production australien est TRIMESTRIEL. | https://www.abs.gov.au/statistics/economy/price-indexes-and-inflation/producer-price-indexes-australia/sep-2026/642701.xlsx | 2026-11-04 | 12 obs, 2023-12-01 → 2026-09-01 |
-| `unemployment_rate` | ABS 6202.0 tableau 1 — Unemployment rate, Persons, seasonally adjusted, % — Enquête sur la population active, mensuel. | https://www.abs.gov.au/statistics/labour/employment-and-unemployment/labour-force-australia/sep-2026/62020001.xlsx | 2026-11-04 | 35 obs, 2023-11-01 → 2026-09-01 |
-| `real_gdp_growth` | ABS 5206.0 Key Aggregates — PIB réel (volume chaîné) : % t/t-1 CVS (value) ; YoY calculé à partir des niveaux CVS (value_secondary) — Dernier point : 2026T2 (le T3 paraît en décembre). | https://www.abs.gov.au/statistics/economy/national-accounts/australian-national-accounts-national-income-expenditure-and-product/jun-2026/5206001_Key_Aggregates.xlsx | 2026-11-04 | 11 obs, 2023-12-01 → 2026-06-01 |
+*`ppi_yoy` (IPPI) : **non disponible** — StatCan injoignable depuis cet environnement (timeout réseau). Dernière valeur connue : sept. 2026 = +14,5 % an/an (The Daily du 22/10/2026, www150.statcan.gc.ca/n1/daily-quotidien/261022/dq261022a-eng.htm).*
 
-## NZD
+## AUD — Australie
 
-| Série | Définition / institution | URL | Collecté le | Couverture |
-|---|---|---|---|---|
-| `policy_rate` | Reserve Bank of New Zealand — Official Cash Rate, table officielle des décisions (14/08/24 5,25 ; 09/10/24 4,75 ; 27/11/24 4,25 ; 19/02/25 3,75 ; 09/04/25 3,50 ; 28/05/25 3,25 ; 20/08/25 3,00 ; 08/10/25 2,50 ; 26/11/25 2,25 ; 08/07/26 2,50 ; 02/09/26 2,75 ; 28/10/26 2,75 hors fenêtre) — Taux en vigueur au 1er jour du mois (le changement s'applique le jour même de la décision). | https://www.rbnz.govt.nz/monetary-policy/monetary-policy-decisions | 2026-11-04 | 36 obs, 2023-11-01 → 2026-10-01 |
-| `inflation_rate` | Stats NZ — Consumers Price Index, All groups, % de variation sur le trimestre correspondant de l'année précédente (classeur de publication, Table 1) — Série trimestrielle (l'IPC néo-zélandais est trimestriel). | https://www.stats.govt.nz/information-releases/consumers-price-index-september-2026-quarter | 2026-11-04 | 12 obs, 2023-12-01 → 2026-09-01 |
-| `inflation_rate` | Stats NZ — CPI « All groups less food group, household energy subgroup and vehicle fuels », % an/an (Table 3.03, classeurs sep-2024/2025/2026) — Proxy officiel du noyau (hors alimentation et énergies) : les mesures trimmed mean/weighted median de Stats NZ ne sont pas accessibles programmatiquement. | https://www.stats.govt.nz/information-releases/consumers-price-index-september-2026-quarter | 2026-11-04 | 〃 |
-| `unemployment_rate` | FRED (OECD Infra-Annual Labor Statistics) LRHUTTTTNZQ156S — taux de chômage trimestriel CVS, % (source primaire : Household Labour Force Survey, Stats NZ) — Série trimestrielle. | https://fred.stlouisfed.org/graph/fredgraph.csv?id=LRHUTTTTNZQ156S | 2026-11-04 | 11 obs, 2023-12-01 → 2026-06-01 |
-| `real_gdp_growth` | FRED (OECD National Accounts) NAEXKP01NZQ657S — PIB réel, croissance t/t-1 CVS % (source primaire : Stats NZ) — YoY calculé par capitalisation des 4 taux trimestriels. Dernier point : 2026T2 (le T3 paraît mi-décembre). | https://fred.stlouisfed.org/graph/fredgraph.csv?id=NAEXKP01NZQ657S | 2026-11-04 | 11 obs, 2023-12-01 → 2026-06-01 |
+| Série | Définition / institution | URL | Couverture |
+|---|---|---|---|
+| `policy_rate` | RBA — Cash Rate Target (table F1.1 FIRMMCRT via DBnomics + table officielle des décisions), taux au 1ᵉʳ jour du mois | https://www.rba.gov.au/statistics/cash-rate/ | 36 obs (mensuel), 2023-11 → 2026-10 |
+| `cpi_trimmed_yoy` | RBA table G1 — trimmed mean, % an/an (via DBnomics) — série trimestrielle | https://api.db.nomics.world/v22/series/RBA/G1/GCPIOCPMTMYP?observations=1&format=json | 12 obs (trimestriel), 2023-10 → 2026-07 |
+| `cpi_weighted_median_yoy` | RBA table G1 — weighted median, % an/an (via DBnomics) — série trimestrielle | https://api.db.nomics.world/v22/series/RBA/G1/GCPIOCPMWMYP?observations=1&format=json | 12 obs (trimestriel), 2023-10 → 2026-07 |
+| `ppi_yoy` | ABS 6427.0 tableau 1 — Producer Price Index (final demand), % an/an — série trimestrielle | https://www.abs.gov.au/statistics/economy/price-indexes-and-inflation/producer-price-indexes-australia/sep-2026/642701.xlsx | 12 obs (trimestriel), 2023-10 → 2026-07 |
+| `unemployment_rate` | ABS 6202.0 tableau 1 — taux de chômage, personnes, CVS | https://www.abs.gov.au/statistics/labour/employment-and-unemployment/labour-force-australia/sep-2026/62020001.xlsx | 35 obs (mensuel), 2023-11 → 2026-09 |
+| `gdp_qoq` | ABS 5206.0 Key Aggregates — PIB réel (volume chaîné) t/t-1 CVS % | https://www.abs.gov.au/statistics/economy/national-accounts/australian-national-accounts-national-income-expenditure-and-product/jun-2026/5206001_Key_Aggregates.xlsx | 11 obs (trimestriel), 2023-10 → 2026-04 |
+| `gdp_yoy` | YoY calculé à partir des niveaux CVS (ABS 5206.0) | https://www.abs.gov.au/statistics/economy/national-accounts/australian-national-accounts-national-income-expenditure-and-product/jun-2026/5206001_Key_Aggregates.xlsx | 11 obs (trimestriel), 2023-10 → 2026-04 |
+| `sp_global_manufacturing_pmi` | S&P Global PMI — Australia Manufacturing (communiqués) | https://www.pmi.spglobal.com/Public/Release/PressReleases | 2 obs (mensuel), 2026-09 → 2026-10 |
+| `sp_global_services_pmi` | S&P Global PMI — Australia Services (communiqués) | https://www.pmi.spglobal.com/Public/Release/PressReleases | 2 obs (mensuel), 2026-09 → 2026-10 |
 
-## CNY
+## NZD — Nouvelle-Zélande
 
-| Série | Définition / institution | URL | Collecté le | Couverture |
-|---|---|---|---|---|
-| `inflation_rate` | NBS (国家统计局) — communiqués mensuels « 居民消费价格 » : CPI YoY, % (valeur du titre) — CPI national, variation annuelle. Titres des communiqués de presse officiels. | https://www.stats.gov.cn/sj/zxfb/index.html | 2026-11-04 | 32 obs, 2023-11-01 → 2026-09-01 |
-| `inflation_rate` | NBS — CPI « 不包括食品和能源 » (hors alimentation et énergie), YoY, % — Extrait du tableau des communiqués mensuels CPI (2e colonne = variation annuelle). | https://www.stats.gov.cn/sj/zxfb/index.html | 2026-11-04 | 〃 |
-| `ppi_yoy` | NBS — communiqués mensuels « 工业生产者出厂价格 » : PPI YoY, % — PPI national, variation annuelle (titre ou corps du communiqué). | https://www.stats.gov.cn/sj/zxfb/index.html | 2026-11-04 | 33 obs, 2023-11-01 → 2026-09-01 |
-| `unemployment_rate` | NBS — communiqués mensuels « 国民经济运行 » : 全国城镇调查失业率 (taux de chômage urbain enquêté), % — Extrait du corps des communiqués mensuels. | https://www.stats.gov.cn/sj/zxfb/index.html | 2026-11-04 | 9 obs, 2024-04-01 → 2026-08-01 |
-| `real_gdp_growth` | NBS — communiqué « 国内生产总值初步核算结果 » : Table 2 (GDP 同比增长速度, YoY) et Table 3 (环比增长速度, QoQ), % — Chaque communiqué trimestriel contient l'historique complet des taux trimestriels. | https://www.stats.gov.cn/sj/zxfb/202610/t20261020_1965658.html | 2026-11-04 | 12 obs, 2023-12-01 → 2026-09-01 |
-| `caixin_manufacturing_pmi` | S&P Global / portail PMI (pmi.spglobal.com) — communiqués de presse « China General Manufacturing », indice désaisonnalisé — Investing.com inaccessible (HTTP 403) ; le portail S&P Global ne liste que les communiqués récents → couverture partielle (~2-4 mois). Chaque communiqué fournit le mois courant et le mois précédent. | https://www.pmi.spglobal.com/Public/Release/PressReleases | 2026-11-04 | 1 obs, 2026-10-01 → 2026-10-01 |
-| `caixin_services_pmi` | S&P Global / portail PMI (pmi.spglobal.com) — communiqués de presse « China General Services », indice désaisonnalisé — Investing.com inaccessible (HTTP 403) ; le portail S&P Global ne liste que les communiqués récents → couverture partielle (~2-4 mois). Chaque communiqué fournit le mois courant et le mois précédent. | https://www.pmi.spglobal.com/Public/Release/PressReleases | 2026-11-04 | 2 obs, 2026-09-01 → 2026-10-01 |
+| Série | Définition / institution | URL | Couverture |
+|---|---|---|---|
+| `policy_rate` | RBNZ — Official Cash Rate, table des décisions, taux au 1ᵉʳ jour du mois | https://www.rbnz.govt.nz/monetary-policy/monetary-policy-decisions | 36 obs (mensuel), 2023-11 → 2026-10 |
+| `cpi_headline_yoy` | Stats NZ — Consumers Price Index, all groups, % an/an (Table 1) — série trimestrielle | https://www.stats.govt.nz/information-releases/consumers-price-index-september-2026-quarter | 12 obs (trimestriel), 2023-10 → 2026-07 |
+| `cpi_core_proxy_yoy` | Stats NZ — CPI « all groups less food group, household energy subgroup and vehicle fuels » (Table 3.03) — proxy officiel du noyau, pas une mesure universelle du « core » | https://www.stats.govt.nz/information-releases/consumers-price-index-september-2026-quarter | 12 obs (trimestriel), 2023-10 → 2026-07 |
+| `ppi_yoy` | Stats NZ — Business Price Indexes, PPI sorties toutes industries (SQU900000), % an/an (Table 1.03 des classeurs jun-2026, mar-2025, dec-2024) — ajouté en 2ᵉ passe | https://www.stats.govt.nz/information-releases/business-price-indexes-june-2026-quarter | 11 obs (trimestriel), 2023-10 → 2026-04 |
+| `unemployment_rate` | FRED (OECD IALS) LRHUTTTTNZQ156S (source primaire : Stats NZ, HLFS) ; T3 2026 ajouté depuis Stats NZ (LMS du 04/11/2026) | https://fred.stlouisfed.org/graph/fredgraph.csv?id=LRHUTTTTNZQ156S | 12 obs (trimestriel), 2023-10 → 2026-07 |
+| `gdp_qoq` | FRED (OECD) NAEXKP01NZQ657S — PIB réel t/t-1 CVS % (source primaire : Stats NZ) | https://fred.stlouisfed.org/graph/fredgraph.csv?id=NAEXKP01NZQ657S | 11 obs (trimestriel), 2023-10 → 2026-04 |
+| `gdp_yoy` | YoY calculé par capitalisation des 4 taux trimestriels (FRED NAEXKP01NZQ657S) | https://fred.stlouisfed.org/graph/fredgraph.csv?id=NAEXKP01NZQ657S | 11 obs (trimestriel), 2023-10 → 2026-04 |
+
+*PMI néo-zélandais (BNZ-BusinessNZ PMI/PSI) : **non collectés** — sites BusinessNZ/BNZ inaccessibles (HTTP 403), Investing.com bloqué.*
+
+## CNY — Chine
+
+| Série | Définition / institution | URL | Couverture |
+|---|---|---|---|
+| `policy_rate` | PBOC — taux de prise en pension inversée à 7 jours (principal taux directeur de la fenêtre), taux au 1ᵉʳ jour du mois — ajouté en 2ᵉ passe depuis les annonces officielles | https://www.stats.gov.cn/sj/zxfb/ | 36 obs (mensuel), 2023-11 → 2026-10 |
+| `cpi_headline_yoy` | NBS — communiqués mensuels « 居民消费价格 » : CPI YoY, % (titre ou corps du communiqué) | https://www.stats.gov.cn/sj/zxfb/ | 35 obs (mensuel), 2023-11 → 2026-09 |
+| `cpi_core_yoy` | NBS — CPI « 不包括食品和能源 » (hors alimentation et énergie), YoY, % (tableau du communiqué) | https://www.stats.gov.cn/sj/zxfb/ | 35 obs (mensuel), 2023-11 → 2026-09 |
+| `ppi_yoy` | NBS — communiqués mensuels « 工业生产者出厂价格 » : PPI YoY, % | https://www.stats.gov.cn/sj/zxfb/ | 35 obs (mensuel), 2023-11 → 2026-09 |
+| `unemployment_rate` | China Data Portal (chinadata.live) — miroir du taux de chômage urbain enquêté NBS (validé sur 11 points de contrôle) ; portail de données NBS inaccessible (403) | https://chinadata.live/api/v2/data/china-unemployment | 35 obs (mensuel), 2023-11 → 2026-09 |
+| `gdp_qoq` | NBS — communiqué trimestriel « 国内生产总值初步核算结果 » : Table 3 环比 (QoQ), % | https://www.stats.gov.cn/sj/zxfb/202610/t20261020_1965658.html | 12 obs (trimestriel), 2023-10 → 2026-07 |
+| `gdp_yoy` | NBS — communiqué trimestriel : Table 2 同比 (YoY), % | https://www.stats.gov.cn/sj/zxfb/202610/t20261020_1965658.html | 12 obs (trimestriel), 2023-10 → 2026-07 |
+| `ratingdog_manufacturing_pmi` | S&P Global / RatingDog China (ex-Caixin) — General Manufacturing PMI (communiqués) | https://www.pmi.spglobal.com/Public/Release/PressReleases | 2 obs (mensuel), 2026-09 → 2026-10 |
+| `ratingdog_services_pmi` | S&P Global / RatingDog China (ex-Caixin) — General Services Business Activity Index (communiqués) | https://www.pmi.spglobal.com/Public/Release/PressReleases | 2 obs (mensuel), 2026-09 → 2026-10 |
