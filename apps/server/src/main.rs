@@ -19,7 +19,7 @@ use macro_journal_server::{
     storage::{open_or_initialize, StorageError},
 };
 use macro_journal_shared::{Entry, EntryDraft, HealthResponse};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, SqlitePool};
 use tower_http::{
     cors::CorsLayer,
@@ -34,6 +34,7 @@ struct AppState {
     /// Répertoire des snapshots, résolu au démarrage à côté de la base :
     /// jamais dérivé du répertoire courant au moment d'une requête.
     backups_dir: PathBuf,
+    economic_history_path: PathBuf,
 }
 
 #[derive(Debug, FromRow)]
@@ -69,6 +70,21 @@ struct BackupResponse {
     path: String,
 }
 
+#[derive(Clone, Debug, Deserialize, Serialize)]
+struct EconomicObservation {
+    series_id: String,
+    date: String,
+    value: f64,
+    value_secondary: Option<f64>,
+}
+
+#[derive(Debug, Deserialize)]
+struct EconomicObservationDraft {
+    date: String,
+    value: f64,
+    value_secondary: Option<f64>,
+}
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     tracing_subscriber::fmt()
@@ -97,6 +113,7 @@ async fn main() -> anyhow::Result<()> {
     let state = AppState {
         pool,
         backups_dir: layout.backups_dir.clone(),
+        economic_history_path: workspace_root().join("economic_data/usd/history.csv"),
     };
     // Clone bon marché (pool Arc) : le pool reste accessible pour la fermeture
     // ordonnée après l'arrêt du serveur.
@@ -138,6 +155,14 @@ async fn main() -> anyhow::Result<()> {
             axum::routing::put(update_currency_entry),
         )
         .route("/api/backups", post(create_backup_handler))
+        .route(
+            "/api/economic/usd/observations",
+            get(list_economic_observations),
+        )
+        .route(
+            "/api/economic/usd/observations/{series_id}",
+            post(add_economic_observation),
+        )
         .fallback_service(static_files)
         .layer(cors)
         .layer(TraceLayer::new_for_http())
@@ -186,6 +211,224 @@ async fn health() -> Json<HealthResponse> {
     Json(HealthResponse {
         status: "ok".to_string(),
     })
+}
+
+async fn list_economic_observations(
+    State(state): State<AppState>,
+) -> Result<Json<Vec<EconomicObservation>>, ApiFailure> {
+    read_economic_history(&state.economic_history_path)
+        .await
+        .map(Json)
+}
+
+async fn add_economic_observation(
+    State(state): State<AppState>,
+    Path(series_id): Path<String>,
+    Json(draft): Json<EconomicObservationDraft>,
+) -> Result<(StatusCode, Json<EconomicObservation>), ApiFailure> {
+    validate_economic_observation(&series_id, &draft)?;
+    let mut observations = read_economic_history(&state.economic_history_path).await?;
+    let observation = EconomicObservation {
+        series_id,
+        date: draft.date,
+        value: draft.value,
+        value_secondary: draft.value_secondary,
+    };
+
+    if let Some(existing) = observations.iter_mut().find(|existing| {
+        existing.series_id == observation.series_id && existing.date == observation.date
+    }) {
+        *existing = observation.clone();
+    } else {
+        observations.push(observation.clone());
+    }
+    observations.sort_by(|left, right| {
+        left.series_id
+            .cmp(&right.series_id)
+            .then_with(|| left.date.cmp(&right.date))
+    });
+
+    let mut csv = String::from("series_id,date,value,value_secondary\n");
+    for row in &observations {
+        csv.push_str(&format!(
+            "{},{},{},{}\n",
+            row.series_id,
+            row.date,
+            row.value,
+            row.value_secondary
+                .map(|value| value.to_string())
+                .unwrap_or_default()
+        ));
+    }
+    let temporary_path = state.economic_history_path.with_extension("csv.tmp");
+    if let Some(parent) = state.economic_history_path.parent() {
+        tokio::fs::create_dir_all(parent).await.map_err(|error| {
+            error!(?error, "Could not create the USD economic-data directory");
+            ApiFailure::internal("Economic data could not be saved.")
+        })?;
+    }
+    tokio::fs::write(&temporary_path, csv)
+        .await
+        .map_err(|error| {
+            error!(?error, "Could not write temporary USD economic history");
+            ApiFailure::internal("Economic data could not be saved.")
+        })?;
+    tokio::fs::rename(&temporary_path, &state.economic_history_path)
+        .await
+        .map_err(|error| {
+            error!(?error, "Could not publish USD economic history");
+            ApiFailure::internal("Economic data could not be saved.")
+        })?;
+
+    Ok((StatusCode::CREATED, Json(observation)))
+}
+
+async fn read_economic_history(
+    path: &std::path::Path,
+) -> Result<Vec<EconomicObservation>, ApiFailure> {
+    let contents = tokio::fs::read_to_string(path).await.map_err(|error| {
+        error!(?error, path = %path.display(), "Could not read USD economic history");
+        ApiFailure::internal("Economic history could not be read.")
+    })?;
+    let mut lines = contents.lines();
+    if lines.next() != Some("series_id,date,value,value_secondary") {
+        error!(path = %path.display(), "USD economic history has an invalid CSV header");
+        return Err(ApiFailure::internal(
+            "Economic history has an invalid CSV header.",
+        ));
+    }
+
+    lines
+        .enumerate()
+        .map(|(index, line)| {
+            let columns = line.split(',').collect::<Vec<_>>();
+            if columns.len() != 4 {
+                error!(
+                    line = index + 2,
+                    "USD economic history has an invalid CSV row"
+                );
+                return Err(ApiFailure::internal(
+                    "Economic history contains an invalid CSV row.",
+                ));
+            }
+            let value = columns[2].parse::<f64>().map_err(|_| {
+                error!(
+                    line = index + 2,
+                    "USD economic history contains an invalid value"
+                );
+                ApiFailure::internal("Economic history contains an invalid value.")
+            })?;
+            let value_secondary = if columns[3].is_empty() {
+                None
+            } else {
+                Some(columns[3].parse::<f64>().map_err(|_| {
+                    error!(
+                        line = index + 2,
+                        "USD economic history contains an invalid secondary value"
+                    );
+                    ApiFailure::internal("Economic history contains an invalid value.")
+                })?)
+            };
+            let row = EconomicObservation {
+                series_id: columns[0].to_string(),
+                date: columns[1].to_string(),
+                value,
+                value_secondary,
+            };
+            validate_economic_observation(
+                &row.series_id,
+                &EconomicObservationDraft {
+                    date: row.date.clone(),
+                    value: row.value,
+                    value_secondary: row.value_secondary,
+                },
+            )
+            .map_err(|_| {
+                error!(
+                    line = index + 2,
+                    "USD economic history contains an invalid observation"
+                );
+                ApiFailure::internal("Economic history contains an invalid observation.")
+            })?;
+            Ok(row)
+        })
+        .collect()
+}
+
+fn validate_economic_observation(
+    series_id: &str,
+    draft: &EconomicObservationDraft,
+) -> Result<(), ApiFailure> {
+    const SERIES: &[&str] = &[
+        "fed_target_range",
+        "pce_inflation",
+        "unemployment_rate",
+        "nonfarm_payrolls",
+        "real_gdp_growth",
+        "ism_manufacturing_pmi",
+    ];
+    if !SERIES.contains(&series_id) {
+        return Err(ApiFailure::bad_request("Unknown USD economic indicator."));
+    }
+    if !valid_iso_date(&draft.date) {
+        return Err(ApiFailure::bad_request(
+            "Date must be a valid YYYY-MM-DD date.",
+        ));
+    }
+    if !draft.value.is_finite()
+        || draft
+            .value_secondary
+            .is_some_and(|value| !value.is_finite())
+    {
+        return Err(ApiFailure::bad_request("Values must be finite numbers."));
+    }
+    let has_secondary = matches!(series_id, "fed_target_range" | "pce_inflation");
+    if draft.value_secondary.is_some() != has_secondary {
+        return Err(ApiFailure::bad_request(
+            "This indicator has an invalid number of values.",
+        ));
+    }
+    if series_id == "fed_target_range"
+        && draft
+            .value_secondary
+            .is_some_and(|upper| draft.value > upper)
+    {
+        return Err(ApiFailure::bad_request(
+            "The lower Fed target rate must not exceed the upper rate.",
+        ));
+    }
+    if series_id == "ism_manufacturing_pmi" && !(0.0..=100.0).contains(&draft.value) {
+        return Err(ApiFailure::bad_request(
+            "PMI values must be between 0 and 100.",
+        ));
+    }
+    Ok(())
+}
+
+fn valid_iso_date(value: &str) -> bool {
+    let parts = value.split('-').collect::<Vec<_>>();
+    if parts.len() != 3 || parts.iter().any(|part| part.is_empty()) {
+        return false;
+    }
+    let (Ok(year), Ok(month), Ok(day)) = (
+        parts[0].parse::<i32>(),
+        parts[1].parse::<u32>(),
+        parts[2].parse::<u32>(),
+    ) else {
+        return false;
+    };
+    if parts[0].len() != 4 || parts[1].len() != 2 || parts[2].len() != 2 {
+        return false;
+    }
+    let leap_year = year % 4 == 0 && (year % 100 != 0 || year % 400 == 0);
+    let days_in_month = match month {
+        1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
+        4 | 6 | 9 | 11 => 30,
+        2 if leap_year => 29,
+        2 => 28,
+        _ => return false,
+    };
+    (1..=days_in_month).contains(&day)
 }
 
 async fn list_entries(State(state): State<AppState>) -> Result<Json<Vec<Entry>>, ApiFailure> {
@@ -441,6 +684,12 @@ mod tests {
         let pool = open_or_initialize(&layout, &sqlx::migrate!("./migrations"))
             .await
             .unwrap();
+        let economic_history_path = dir.join("history.csv");
+        std::fs::write(
+            &economic_history_path,
+            "series_id,date,value,value_secondary\n",
+        )
+        .unwrap();
         Router::new()
             .route("/api/health", get(health))
             .route("/api/entries", get(list_entries).post(create_entry))
@@ -457,9 +706,18 @@ mod tests {
                 axum::routing::put(update_currency_entry),
             )
             .route("/api/backups", post(create_backup_handler))
+            .route(
+                "/api/economic/usd/observations",
+                get(list_economic_observations),
+            )
+            .route(
+                "/api/economic/usd/observations/{series_id}",
+                post(add_economic_observation),
+            )
             .with_state(AppState {
                 pool,
                 backups_dir: layout.backups_dir,
+                economic_history_path,
             })
     }
 
@@ -482,6 +740,23 @@ mod tests {
     ) -> Request<Body> {
         let body = serde_json::json!({ "title": title, "content": content });
         Request::post(format!("/api/currencies/{currency_code}/entries"))
+            .header(header::CONTENT_TYPE, "application/json")
+            .body(Body::from(body.to_string()))
+            .unwrap()
+    }
+
+    fn add_economic_observation_request(
+        series_id: &str,
+        date: &str,
+        value: f64,
+        value_secondary: Option<f64>,
+    ) -> Request<Body> {
+        let body = serde_json::json!({
+            "date": date,
+            "value": value,
+            "value_secondary": value_secondary,
+        });
+        Request::post(format!("/api/economic/usd/observations/{series_id}"))
             .header(header::CONTENT_TYPE, "application/json")
             .body(Body::from(body.to_string()))
             .unwrap()
@@ -640,6 +915,67 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    }
+
+    #[tokio::test]
+    async fn economic_observations_are_local_and_same_period_updates_existing_row() {
+        let dir = tempfile::tempdir().unwrap();
+        let app = test_app(dir.path()).await;
+
+        let first = app
+            .clone()
+            .oneshot(add_economic_observation_request(
+                "unemployment_rate",
+                "2026-10-01",
+                4.2,
+                None,
+            ))
+            .await
+            .unwrap();
+        assert_eq!(first.status(), StatusCode::CREATED);
+
+        let revision = app
+            .clone()
+            .oneshot(add_economic_observation_request(
+                "unemployment_rate",
+                "2026-10-01",
+                4.1,
+                None,
+            ))
+            .await
+            .unwrap();
+        assert_eq!(revision.status(), StatusCode::CREATED);
+
+        let response = app
+            .oneshot(
+                Request::get("/api/economic/usd/observations")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+        let rows: serde_json::Value = serde_json::from_str(&body_string(response).await).unwrap();
+        assert_eq!(rows.as_array().unwrap().len(), 1);
+        assert_eq!(rows[0]["value"], 4.1);
+        assert!(std::fs::read_to_string(dir.path().join("history.csv"))
+            .unwrap()
+            .contains("unemployment_rate,2026-10-01,4.1,"));
+    }
+
+    #[tokio::test]
+    async fn economic_observations_reject_invalid_periods_and_unexpected_indicators() {
+        let dir = tempfile::tempdir().unwrap();
+        let app = test_app(dir.path()).await;
+
+        for request in [
+            add_economic_observation_request("unemployment_rate", "2026-02-30", 4.2, None),
+            add_economic_observation_request("outside_usd", "2026-10-01", 4.2, None),
+            add_economic_observation_request("ism_manufacturing_pmi", "2026-10-01", 101.0, None),
+        ] {
+            let response = app.clone().oneshot(request).await.unwrap();
+            assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+        }
     }
 
     #[tokio::test]

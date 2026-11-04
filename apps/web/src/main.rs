@@ -3,7 +3,7 @@ use leptos::prelude::*;
 use leptos::task::spawn_local;
 use macro_journal_shared::{Entry, EntryDraft};
 use pulldown_cmark::{html, Event, Options, Parser};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 const API_BASE: &str = "http://127.0.0.1:3000";
 
@@ -21,6 +21,101 @@ struct CotChartAsset {
 #[derive(Deserialize)]
 struct CotManifest {
     markets: Vec<CotChartAsset>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+struct EconomicObservation {
+    series_id: String,
+    date: String,
+    value: f64,
+    value_secondary: Option<f64>,
+}
+
+#[derive(Clone, Copy)]
+struct EconomicIndicator {
+    id: &'static str,
+    title: &'static str,
+    unit: &'static str,
+    source_name: &'static str,
+    source_url: &'static str,
+    note: &'static str,
+    primary_label: &'static str,
+    secondary_label: Option<&'static str>,
+}
+
+const ECONOMIC_INDICATORS: [EconomicIndicator; 6] = [
+    EconomicIndicator {
+        id: "fed_target_range",
+        title: "Taux directeur Fed",
+        unit: "%",
+        source_name: "Federal Reserve Board",
+        source_url: "https://fred.stlouisfed.org/series/DFEDTARL",
+        note: "Fourchette cible du FOMC, relevée mensuellement à partir de la dernière valeur connue.",
+        primary_label: "Borne basse",
+        secondary_label: Some("Borne haute"),
+    },
+    EconomicIndicator {
+        id: "pce_inflation",
+        title: "Inflation PCE",
+        unit: "% sur 12 mois",
+        source_name: "Bureau of Economic Analysis",
+        source_url: "https://fred.stlouisfed.org/series/PCEPI",
+        note: "Inflation PCE globale et sous-jacente, calculée sur les indices publiés.",
+        primary_label: "PCE global",
+        secondary_label: Some("PCE sous-jacent"),
+    },
+    EconomicIndicator {
+        id: "unemployment_rate",
+        title: "Taux de chômage",
+        unit: "%",
+        source_name: "Bureau of Labor Statistics",
+        source_url: "https://fred.stlouisfed.org/series/UNRATE",
+        note: "Taux de chômage civil désaisonnalisé, publié chaque mois.",
+        primary_label: "Chômage",
+        secondary_label: None,
+    },
+    EconomicIndicator {
+        id: "nonfarm_payrolls",
+        title: "Emploi non agricole",
+        unit: "milliers",
+        source_name: "Bureau of Labor Statistics",
+        source_url: "https://fred.stlouisfed.org/series/PAYEMS",
+        note: "Niveau de l’emploi salarié non agricole, en milliers de personnes.",
+        primary_label: "Emploi",
+        secondary_label: None,
+    },
+    EconomicIndicator {
+        id: "real_gdp_growth",
+        title: "Croissance du PIB réel",
+        unit: "% annualisé",
+        source_name: "Bureau of Economic Analysis",
+        source_url: "https://fred.stlouisfed.org/series/GDPC1",
+        note: "Variation trimestrielle annualisée calculée à partir du PIB réel.",
+        primary_label: "PIB réel",
+        secondary_label: None,
+    },
+    EconomicIndicator {
+        id: "ism_manufacturing_pmi",
+        title: "PMI manufacturier ISM",
+        unit: "indice",
+        source_name: "Institute for Supply Management",
+        source_url: "https://www.ismworld.org/supply-management-news-and-reports/reports/ism-report-on-business/",
+        note: "Indice de diffusion mensuel; au-dessus de 50, l’activité est généralement en expansion.",
+        primary_label: "PMI",
+        secondary_label: None,
+    },
+];
+
+#[derive(Serialize)]
+struct EconomicObservationDraft {
+    date: String,
+    value: f64,
+    value_secondary: Option<f64>,
+}
+
+#[derive(Deserialize)]
+struct ApiErrorResponse {
+    error: String,
 }
 
 #[derive(Clone, Copy)]
@@ -659,6 +754,26 @@ fn App() -> impl IntoView {
                                     </section>
                                 </div>
 
+                                {if currency.code == "USD" {
+                                    view! {
+                                        <section class="economic-data-section">
+                                            <div class="economic-data-heading">
+                                                <div>
+                                                    <div class="eyebrow">"FONDAMENTAUX · SOURCES OFFICIELLES"</div>
+                                                    <h2>"Données économiques"</h2>
+                                                </div>
+                                                <span class="cot-indicator-label">"DONNÉES RÉALISÉES · SANS CONSENSUS"</span>
+                                            </div>
+                                            <p class="economic-data-intro">
+                                                "Historique USD conservé dans un CSV local, sans actualisation externe. Ouvrez un indicateur pour choisir sa période et son affichage, puis saisir une nouvelle donnée."
+                                            </p>
+                                            <EconomicDashboard/>
+                                        </section>
+                                    }.into_any()
+                                } else {
+                                    ().into_any()
+                                }}
+
                                 <section class="currency-notes">
                                     <div class="currency-notes-heading">
                                         <div>
@@ -977,6 +1092,547 @@ fn App() -> impl IntoView {
     }
 }
 
+#[component]
+fn EconomicDashboard() -> impl IntoView {
+    let (observations, set_observations) =
+        signal::<Option<Result<Vec<EconomicObservation>, String>>>(None);
+    let (selected_indicator, set_selected_indicator) = signal::<Option<String>>(None);
+    let (years, set_years) = signal(3_u8);
+    let (chart_type, set_chart_type) = signal("line".to_string());
+    let (date, set_date) = signal(String::new());
+    let (value, set_value) = signal(String::new());
+    let (secondary_value, set_secondary_value) = signal(String::new());
+    let (save_status, set_save_status) = signal(String::new());
+
+    spawn_local(async move {
+        set_observations.set(Some(fetch_economic_observations().await));
+    });
+
+    let save_observation = move |event: leptos::ev::SubmitEvent| {
+        event.prevent_default();
+        let Some(series_id) = selected_indicator.get() else {
+            return;
+        };
+        let indicator = economic_indicator(&series_id).expect("selected indicator is known");
+        let parsed_value = value.get().trim().parse::<f64>();
+        let Ok(parsed_value) = parsed_value else {
+            set_save_status.set("Saisissez une valeur numérique valide.".to_string());
+            return;
+        };
+        let parsed_secondary = if indicator.secondary_label.is_some() {
+            match secondary_value.get().trim().parse::<f64>() {
+                Ok(number) => Some(number),
+                Err(_) => {
+                    set_save_status.set("Saisissez également la seconde valeur.".to_string());
+                    return;
+                }
+            }
+        } else {
+            None
+        };
+        let draft = EconomicObservationDraft {
+            date: date.get(),
+            value: parsed_value,
+            value_secondary: parsed_secondary,
+        };
+        set_save_status.set("Enregistrement…".to_string());
+
+        spawn_local(async move {
+            match add_economic_observation(&series_id, draft).await {
+                Ok(saved) => {
+                    set_observations.update(|current| {
+                        if let Some(Ok(rows)) = current {
+                            rows.retain(|row| {
+                                row.series_id != saved.series_id || row.date != saved.date
+                            });
+                            rows.push(saved);
+                            rows.sort_by(|left, right| {
+                                left.series_id
+                                    .cmp(&right.series_id)
+                                    .then_with(|| left.date.cmp(&right.date))
+                            });
+                        }
+                    });
+                    set_value.set(String::new());
+                    set_secondary_value.set(String::new());
+                    set_save_status.set("Donnée enregistrée dans le CSV local.".to_string());
+                }
+                Err(error) => {
+                    set_save_status.set(format!("Échec de l’enregistrement : {error}"));
+                }
+            }
+        });
+    };
+
+    view! {
+        <div class="economic-dashboard">
+            {move || match observations.get() {
+                None => view! {
+                    <p class="cot-state">"Chargement de l’historique USD local…"</p>
+                }.into_any(),
+                Some(Err(error)) => view! {
+                    <p class="cot-state cot-state-error" role="alert">
+                        "Impossible de charger l’historique économique local : " {error}
+                    </p>
+                }.into_any(),
+                Some(Ok(rows)) => {
+                    match selected_indicator.get() {
+                        None => view! {
+                            <div class="economic-index">
+                                {ECONOMIC_INDICATORS.into_iter().map(|indicator| {
+                                    let series_rows = rows.iter()
+                                        .filter(|row| row.series_id == indicator.id)
+                                        .cloned()
+                                        .collect::<Vec<_>>();
+                                    let latest = series_rows.last().cloned();
+                                    view! {
+                                        <button
+                                            class="economic-index-card"
+                                            on:click=move |_| {
+                                                set_selected_indicator.set(Some(indicator.id.to_string()));
+                                                set_years.set(3);
+                                                set_chart_type.set("line".to_string());
+                                                set_save_status.set(String::new());
+                                            }
+                                        >
+                                            <span class="economic-index-card-top">
+                                                <strong>{indicator.title}</strong>
+                                                <span aria-hidden="true">"↗"</span>
+                                            </span>
+                                            {match latest {
+                                                Some(latest) => view! {
+                                                    <span class="economic-index-value">
+                                                        {economic_observation_label(indicator, &latest)}
+                                                    </span>
+                                                    <span class="economic-index-meta">
+                                                        {economic_observation_meta(indicator, &latest)}
+                                                    </span>
+                                                }.into_any(),
+                                                None => view! {
+                                                    <span class="economic-index-value economic-index-empty">
+                                                        "Aucune donnée locale"
+                                                    </span>
+                                                    <span class="economic-index-meta">
+                                                        {format!("{} · saisie manuelle", indicator.unit)}
+                                                    </span>
+                                                }.into_any(),
+                                            }}
+                                        </button>
+                                    }
+                                }).collect_view()}
+                            </div>
+                        }.into_any(),
+                        Some(id) => match economic_indicator(&id) {
+                            Some(indicator) => {
+                                let mut series_rows = rows.into_iter()
+                                    .filter(|row| row.series_id == indicator.id)
+                                    .collect::<Vec<_>>();
+                                series_rows.sort_by(|left, right| left.date.cmp(&right.date));
+                                let latest = series_rows.last().cloned();
+                                view! {
+                                    <section class="economic-detail">
+                                        <button
+                                            class="back-link economic-back"
+                                            on:click=move |_| {
+                                                set_selected_indicator.set(None);
+                                                set_save_status.set(String::new());
+                                            }
+                                        >
+                                            <span aria-hidden="true">"←"</span> "Tous les indicateurs USD"
+                                        </button>
+                                        <div class="economic-detail-heading">
+                                            <div>
+                                                <div class="eyebrow">"ÉTATS-UNIS · DONNÉES RÉALISÉES"</div>
+                                                <h3>{indicator.title}</h3>
+                                                <p>{indicator.note}</p>
+                                            </div>
+                                            <span class="cot-indicator-label">"HISTORIQUE LOCAL · MAX. 3 ANS"</span>
+                                        </div>
+                                        <div class="economic-latest">
+                                            {match latest.as_ref() {
+                                                Some(latest) => view! {
+                                                    <div class="economic-latest-values">
+                                                        <div>
+                                                            <span>{indicator.primary_label}</span>
+                                                            <strong>{format_economic_value(latest.value, indicator.unit)}</strong>
+                                                        </div>
+                                                        {indicator.secondary_label.map(|label| view! {
+                                                            <div>
+                                                                <span>{label}</span>
+                                                                <strong>
+                                                                    {latest.value_secondary
+                                                                        .map(|number| format_economic_value(number, indicator.unit))
+                                                                        .unwrap_or_else(|| "—".to_string())}
+                                                                </strong>
+                                                            </div>
+                                                        })}
+                                                    </div>
+                                                    <span class="economic-latest-date">
+                                                        {format!("Période de la donnée · {}", format_date(&latest.date))}
+                                                    </span>
+                                                }.into_any(),
+                                                None => view! {
+                                                    <p>"Aucune observation pour cet indicateur. Ajoutez la dernière publication ci-dessous."</p>
+                                                }.into_any(),
+                                            }}
+                                        </div>
+                                        <div class="economic-chart-tools">
+                                            <div class="economic-control-group" aria-label="Période affichée">
+                                                <span>"PÉRIODE"</span>
+                                                {[1_u8, 2, 3].into_iter().map(|period| view! {
+                                                    <button
+                                                        class="economic-control-button"
+                                                        class:active=move || years.get() == period
+                                                        aria-pressed=move || years.get() == period
+                                                        on:click=move |_| set_years.set(period)
+                                                    >
+                                                        {period} " an" {if period > 1 { "s" } else { "" }}
+                                                    </button>
+                                                }).collect_view()}
+                                            </div>
+                                            <div class="economic-control-group" aria-label="Type de graphique">
+                                                <span>"GRAPHIQUE"</span>
+                                                <button
+                                                    class="economic-control-button"
+                                                    class:active=move || chart_type.get() == "line"
+                                                    aria-pressed=move || chart_type.get() == "line"
+                                                    on:click=move |_| set_chart_type.set("line".to_string())
+                                                >"Courbe"</button>
+                                                <button
+                                                    class="economic-control-button"
+                                                    class:active=move || chart_type.get() == "bar"
+                                                    aria-pressed=move || chart_type.get() == "bar"
+                                                    on:click=move |_| set_chart_type.set("bar".to_string())
+                                                >"Histogramme"</button>
+                                            </div>
+                                        </div>
+                                        {move || {
+                                            let svg = render_economic_chart(
+                                                &series_rows,
+                                                years.get(),
+                                                &chart_type.get(),
+                                                indicator,
+                                            );
+                                            if svg.is_empty() {
+                                                view! {
+                                                    <p class="economic-chart-empty">
+                                                        "Aucune donnée disponible pour cette période."
+                                                    </p>
+                                                }.into_any()
+                                            } else {
+                                                view! {
+                                                    <div class="economic-chart-wrap" inner_html=svg></div>
+                                                }.into_any()
+                                            }
+                                        }}
+                                        <div class="economic-detail-footer">
+                                            <span>{format!("Unité : {}", indicator.unit)}</span>
+                                            <a
+                                                class="economic-source-link"
+                                                href=indicator.source_url
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                            >
+                                                {format!("Source : {}", indicator.source_name)} <span>"↗"</span>
+                                            </a>
+                                        </div>
+                                        <details class="economic-add-form">
+                                            <summary><span>"＋"</span> "Ajouter une publication"</summary>
+                                            <form on:submit=save_observation>
+                                                <div class="economic-form-grid">
+                                                    <label>
+                                                        <span>"PÉRIODE DE LA DONNÉE"</span>
+                                                        <input
+                                                            type="date"
+                                                            required
+                                                            prop:value=move || date.get()
+                                                            on:input=move |event| set_date.set(event_target_value(&event))
+                                                        />
+                                                    </label>
+                                                    <label>
+                                                        <span>{indicator.primary_label}</span>
+                                                        <input
+                                                            type="number"
+                                                            step="any"
+                                                            required
+                                                            prop:value=move || value.get()
+                                                            on:input=move |event| set_value.set(event_target_value(&event))
+                                                        />
+                                                    </label>
+                                                    {indicator.secondary_label.map(|label| view! {
+                                                        <label>
+                                                            <span>{label}</span>
+                                                            <input
+                                                                type="number"
+                                                                step="any"
+                                                                required
+                                                                prop:value=move || secondary_value.get()
+                                                                on:input=move |event| set_secondary_value.set(event_target_value(&event))
+                                                            />
+                                                        </label>
+                                                    })}
+                                                    <button class="button button-primary economic-save-button" type="submit">
+                                                        "Enregistrer la publication"
+                                                    </button>
+                                                </div>
+                                                <p class="economic-form-help">
+                                                    "Une date déjà présente sera remplacée pour permettre de corriger une révision."
+                                                </p>
+                                                <p class="economic-form-status" role="status">{move || save_status.get()}</p>
+                                            </form>
+                                        </details>
+                                    </section>
+                                }.into_any()
+                            }
+                            None => view! {
+                                <p class="cot-state cot-state-error" role="alert">
+                                    "Indicateur USD inconnu."
+                                </p>
+                            }.into_any(),
+                        }
+                    }
+                }
+            }}
+        </div>
+    }
+}
+
+fn economic_indicator(id: &str) -> Option<EconomicIndicator> {
+    ECONOMIC_INDICATORS
+        .iter()
+        .find(|indicator| indicator.id == id)
+        .copied()
+}
+
+fn economic_observation_label(
+    indicator: EconomicIndicator,
+    observation: &EconomicObservation,
+) -> String {
+    let primary = format_economic_value(observation.value, indicator.unit);
+    match (indicator.id, observation.value_secondary) {
+        ("fed_target_range", Some(upper)) => {
+            format!(
+                "{}–{}",
+                primary,
+                format_economic_value(upper, indicator.unit)
+            )
+        }
+        ("pce_inflation", _) => primary,
+        _ => primary,
+    }
+}
+
+fn economic_observation_meta(
+    indicator: EconomicIndicator,
+    observation: &EconomicObservation,
+) -> String {
+    let date = format!("Dernière donnée · {}", format_date(&observation.date));
+    match (indicator.id, observation.value_secondary) {
+        ("fed_target_range", _) => format!("Fourchette cible · {date}"),
+        ("pce_inflation", Some(secondary)) => format!(
+            "PCE sous-jacent {} · {date}",
+            format_economic_value(secondary, indicator.unit)
+        ),
+        _ => date,
+    }
+}
+
+fn format_economic_value(value: f64, unit: &str) -> String {
+    let number = if unit == "milliers" {
+        let digits = format!("{value:.0}");
+        let mut grouped = String::new();
+        for (index, digit) in digits.chars().rev().enumerate() {
+            if index > 0 && index % 3 == 0 {
+                grouped.push(' ');
+            }
+            grouped.push(digit);
+        }
+        grouped.chars().rev().collect()
+    } else {
+        format!("{value:.2}")
+            .trim_end_matches('0')
+            .trim_end_matches('.')
+            .replace('.', ",")
+    };
+    format!("{number} {unit}")
+}
+
+fn render_economic_chart(
+    observations: &[EconomicObservation],
+    years: u8,
+    chart_type: &str,
+    indicator: EconomicIndicator,
+) -> String {
+    let Some(latest) = observations.last() else {
+        return String::new();
+    };
+    let cutoff = month_index(&latest.date) - (i32::from(years) * 12 - 1);
+    let visible = observations
+        .iter()
+        .filter(|row| month_index(&row.date) >= cutoff)
+        .collect::<Vec<_>>();
+    if visible.is_empty() {
+        return String::new();
+    }
+
+    const LEFT: f64 = 65.0;
+    const RIGHT: f64 = 875.0;
+    const TOP: f64 = 22.0;
+    const BOTTOM: f64 = 258.0;
+    let mut values = visible
+        .iter()
+        .flat_map(|row| std::iter::once(row.value).chain(row.value_secondary));
+    let first = values.next().unwrap_or_default();
+    let (minimum, maximum) = values.fold((first, first), |(min, max), value| {
+        (min.min(value), max.max(value))
+    });
+    let padding = ((maximum - minimum) * 0.12)
+        .max(maximum.abs().max(minimum.abs()) * 0.025)
+        .max(0.1);
+    let low = minimum - padding;
+    let high = maximum + padding;
+    let y = |value: f64| BOTTOM - ((value - low) / (high - low)) * (BOTTOM - TOP);
+    let x = |index: usize| {
+        if visible.len() == 1 {
+            (LEFT + RIGHT) / 2.0
+        } else {
+            LEFT + index as f64 / (visible.len() - 1) as f64 * (RIGHT - LEFT)
+        }
+    };
+
+    let mut svg = format!(
+        r##"<svg class="economic-svg" viewBox="0 0 920 320" role="img" aria-label="{} sur {} {}"><rect width="920" height="320" rx="8" fill="#0b110e"/>"##,
+        indicator.title,
+        years,
+        if years == 1 { "an" } else { "ans" }
+    );
+    for index in 0..=4 {
+        let value = high - (high - low) * index as f64 / 4.0;
+        let y_position = y(value);
+        svg.push_str(&format!(
+            r##"<line x1="{LEFT}" y1="{y_position:.1}" x2="{RIGHT}" y2="{y_position:.1}" stroke="#26332b"/><text x="54" y="{:.1}" text-anchor="end" fill="#91a196" font-size="11">{}</text>"##,
+            y_position + 4.0,
+            format!("{value:.1}").replace('.', ",")
+        ));
+    }
+
+    if chart_type == "bar" {
+        let slot_width = (RIGHT - LEFT) / visible.len() as f64;
+        let dual = indicator.secondary_label.is_some();
+        let bar_width = (slot_width * if dual { 0.32 } else { 0.58 }).clamp(3.0, 24.0);
+        for (index, row) in visible.iter().enumerate() {
+            let center = LEFT + (index as f64 + 0.5) * slot_width;
+            let values = [Some(row.value), row.value_secondary];
+            for (series_index, value) in values.into_iter().enumerate() {
+                if let Some(value) = value {
+                    let baseline = y(0.0_f64.clamp(low, high));
+                    let top = y(value).min(baseline);
+                    let height = (baseline - y(value)).abs().max(1.0);
+                    let offset = if dual {
+                        (series_index as f64 - 0.5) * bar_width
+                    } else {
+                        0.0
+                    };
+                    let color = if series_index == 0 {
+                        "#c8a9ff"
+                    } else {
+                        "#56cfe1"
+                    };
+                    svg.push_str(&format!(
+                        r##"<rect x="{:.1}" y="{top:.1}" width="{bar_width:.1}" height="{height:.1}" rx="2" fill="{color}"><title>{} · {value:.2}</title></rect>"##,
+                        center + offset - bar_width / 2.0,
+                        row.date
+                    ));
+                }
+            }
+        }
+    } else {
+        for (series_index, color) in [(0, "#c8a9ff"), (1, "#56cfe1")] {
+            if series_index == 1 && indicator.secondary_label.is_none() {
+                continue;
+            }
+            let points = visible
+                .iter()
+                .enumerate()
+                .filter_map(|(index, row)| {
+                    let value = if series_index == 0 {
+                        Some(row.value)
+                    } else {
+                        row.value_secondary
+                    }?;
+                    Some((index, row, value))
+                })
+                .collect::<Vec<_>>();
+            if points.is_empty() {
+                continue;
+            }
+            let path = points
+                .iter()
+                .enumerate()
+                .map(|(point_index, (index, _, value))| {
+                    format!(
+                        "{} {:.1},{:.1}",
+                        if point_index == 0 { "M" } else { "L" },
+                        x(*index),
+                        y(*value)
+                    )
+                })
+                .collect::<Vec<_>>()
+                .join(" ");
+            svg.push_str(&format!(
+                r##"<path d="{path}" fill="none" stroke="{color}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>"##
+            ));
+            for (index, row, value) in points {
+                svg.push_str(&format!(
+                    r##"<circle cx="{:.1}" cy="{:.1}" r="3" fill="{color}"><title>{} · {value:.2}</title></circle>"##,
+                    x(index),
+                    y(value),
+                    row.date
+                ));
+            }
+        }
+    }
+
+    let label_step = (visible.len() / 5).max(1);
+    for (index, row) in visible.iter().enumerate() {
+        if index % label_step == 0 || index + 1 == visible.len() {
+            svg.push_str(&format!(
+                r##"<text x="{:.1}" y="286" text-anchor="middle" fill="#91a196" font-size="10">{}/{}</text>"##,
+                x(index),
+                row.date.get(5..7).unwrap_or(""),
+                row.date.get(2..4).unwrap_or("")
+            ));
+        }
+    }
+    svg.push_str(r##"<line x1="65" y1="258" x2="875" y2="258" stroke="#435248"/>"##);
+    let mut legend = vec![(indicator.primary_label, "#c8a9ff")];
+    if let Some(label) = indicator.secondary_label {
+        legend.push((label, "#56cfe1"));
+    }
+    for (index, (label, color)) in legend.into_iter().enumerate() {
+        let x_position = 70 + index * 190;
+        svg.push_str(&format!(
+            r##"<circle cx="{x_position}" cy="305" r="4" fill="{color}"/><text x="{}" y="309" fill="#bcc8bf" font-size="11">{label}</text>"##,
+            x_position + 10
+        ));
+    }
+    svg.push_str("</svg>");
+    svg
+}
+
+fn month_index(date: &str) -> i32 {
+    let mut parts = date.split('-');
+    let year = parts
+        .next()
+        .and_then(|part| part.parse::<i32>().ok())
+        .unwrap_or_default();
+    let month = parts
+        .next()
+        .and_then(|part| part.parse::<i32>().ok())
+        .unwrap_or(1);
+    year * 12 + month - 1
+}
+
 fn format_date(timestamp: &str) -> String {
     let date = timestamp.split('T').next().unwrap_or(timestamp);
     let parts = date.split('-').collect::<Vec<_>>();
@@ -1050,6 +1706,50 @@ async fn fetch_cot_manifest() -> Result<Vec<CotChartAsset>, String> {
         .json::<CotManifest>()
         .await
         .map(|manifest| manifest.markets)
+        .map_err(|error| error.to_string())
+}
+
+async fn fetch_economic_observations() -> Result<Vec<EconomicObservation>, String> {
+    let response = Request::get(&format!("{API_BASE}/api/economic/usd/observations"))
+        .send()
+        .await
+        .map_err(|error| error.to_string())?;
+
+    if !response.ok() {
+        return Err(format!("API returned HTTP {}", response.status()));
+    }
+
+    response
+        .json::<Vec<EconomicObservation>>()
+        .await
+        .map_err(|error| error.to_string())
+}
+
+async fn add_economic_observation(
+    series_id: &str,
+    draft: EconomicObservationDraft,
+) -> Result<EconomicObservation, String> {
+    let response = Request::post(&format!(
+        "{API_BASE}/api/economic/usd/observations/{series_id}"
+    ))
+    .json(&draft)
+    .map_err(|error| error.to_string())?
+    .send()
+    .await
+    .map_err(|error| error.to_string())?;
+
+    if !response.ok() {
+        let status = response.status();
+        return Err(response
+            .json::<ApiErrorResponse>()
+            .await
+            .map(|payload| payload.error)
+            .unwrap_or_else(|error| format!("API returned HTTP {status}: {error}")));
+    }
+
+    response
+        .json::<EconomicObservation>()
+        .await
         .map_err(|error| error.to_string())
 }
 

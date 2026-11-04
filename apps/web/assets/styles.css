@@ -648,6 +648,55 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .currency-rate-link small { color: #849188; font-size: 8px; }
 .currency-rate-link .resource-arrow { margin-left: auto; }
 .currency-rate-link:hover .resource-arrow { color: var(--accent); transform: translate(2px,-2px); }
+.economic-data-section { margin: 0 0 30px; padding: 18px; border: 1px solid #303d36; border-radius: 9px; background: linear-gradient(150deg, #151d19, #121917); }
+.economic-data-heading { margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.economic-data-heading .eyebrow { color: #91a294; font-size: 7px; }
+.economic-data-heading h2 { margin: 7px 0 0; color: #e2e8e0; font: 500 21px/1.2 Georgia, "Times New Roman", serif; }
+.economic-data-intro { margin: 0 0 14px; color: #98a69c; font-size: 9px; line-height: 1.6; }
+.economic-index { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 9px; }
+.economic-index-card { min-width: 0; min-height: 86px; padding: 13px 15px; display: flex; flex-direction: column; align-items: stretch; gap: 8px; border: 1px solid #2b3831; border-radius: 7px; background: rgba(5,9,7,.42); color: var(--ink); text-align: left; transition: background .15s ease, border-color .15s ease, transform .15s ease; }
+.economic-index-card:hover { transform: translateY(-1px); border-color: #62735f; background: #18221c; }
+.economic-index-card-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.economic-index-card-top strong { color: #dce5dc; font: 500 14px/1.25 Georgia, "Times New Roman", serif; }
+.economic-index-card-top > span { color: #9fb69f; font-size: 12px; }
+.economic-index-value { color: #e6ede5; font: 500 17px/1.2 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+.economic-index-empty { color: #b9a77f; font: 10px/1.4 Inter, ui-sans-serif, sans-serif; }
+.economic-index-meta { color: #85948a; font-size: 8px; }
+.economic-back { margin-bottom: 14px; }
+.economic-detail-heading { margin-bottom: 15px; display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.economic-detail-heading .eyebrow { color: #91a294; font-size: 7px; }
+.economic-detail-heading h3 { margin: 7px 0 4px; color: #e2e8e0; font: 500 23px/1.2 Georgia, "Times New Roman", serif; }
+.economic-detail-heading p { max-width: 660px; margin: 0; color: #98a69c; font-size: 9px; line-height: 1.55; }
+.economic-detail-heading > .cot-indicator-label { white-space: nowrap; }
+.economic-latest { min-height: 73px; padding: 12px 14px; display: flex; align-items: center; justify-content: space-between; gap: 15px; border: 1px solid #29372f; border-radius: 7px; background: rgba(5,9,7,.48); }
+.economic-latest-values { display: flex; align-items: center; gap: 32px; }
+.economic-latest-values > div { display: flex; flex-direction: column; gap: 5px; }
+.economic-latest-values span { color: #87958a; font-size: 8px; }
+.economic-latest-values strong { color: #dfe9df; font: 500 18px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+.economic-latest-date { color: #99a69b; font-size: 8px; white-space: nowrap; }
+.economic-chart-tools { margin: 14px 0 5px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.economic-control-group { display: flex; align-items: center; gap: 5px; }
+.economic-control-group > span { margin-right: 5px; color: #77877b; font: 7px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; letter-spacing: .08em; }
+.economic-control-button { min-height: 28px; padding: 5px 9px; border: 1px solid #2c3932; border-radius: 5px; background: #121a16; color: #a4b0a5; font-size: 8px; }
+.economic-control-button:hover, .economic-control-button.active { border-color: #657662; background: #243126; color: #dce9d9; }
+.economic-chart-wrap { overflow: hidden; border: 1px solid #26322b; border-radius: 7px; background: #0b110e; }
+.economic-svg { width: 100%; height: auto; display: block; }
+.economic-chart-empty { min-height: 180px; margin: 0; display: grid; place-items: center; color: #99a69b; font-size: 10px; }
+.economic-detail-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; color: #87958a; font-size: 8px; }
+.economic-source-link { margin-top: 7px; display: inline-flex; gap: 4px; color: #9eafa2; font-size: 8px; text-decoration: none; }
+.economic-source-link:hover { color: #d4dfd4; }
+.economic-add-form { margin-top: 16px; border-top: 1px solid #29362f; }
+.economic-add-form summary { padding: 13px 0 2px; color: #bfceb9; cursor: pointer; font-size: 9px; list-style: none; }
+.economic-add-form summary::-webkit-details-marker { display: none; }
+.economic-add-form summary > span { margin-right: 5px; color: #b4c6a9; }
+.economic-add-form[open] summary { margin-bottom: 12px; }
+.economic-form-grid { display: grid; grid-template-columns: repeat(3,minmax(110px,1fr)) auto; align-items: end; gap: 9px; }
+.economic-form-grid label { min-width: 0; display: flex; flex-direction: column; gap: 5px; color: #8d9b8f; font: 7px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+.economic-form-grid input { width: 100%; min-height: 34px; padding: 7px 9px; border: 1px solid #334239; border-radius: 5px; background: #0d1410; color: #e3ebe2; font: 10px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+.economic-save-button { min-height: 34px; padding: 0 12px; font-size: 8px; white-space: nowrap; }
+.economic-form-help, .economic-form-status { margin: 9px 0 0; color: #859389; font-size: 8px; }
+.economic-form-status:empty { display: none; }
+.economic-form-status { color: #b7c8b3; }
 .currency-notes-heading { margin-bottom: 14px; }
 .currency-notes-heading h2 { font-size: 24px; }
 .currency-notes-heading .search-box { width: min(270px, 42%); }
@@ -689,6 +738,20 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
   .currency-new-note { width: 100%; margin: 4px 0 0; }
   .currency-notice { align-items: flex-start; line-height: 1.55; }
   .currency-market-grid { grid-template-columns: 1fr; gap: 10px; }
+  .economic-data-section { padding: 14px; }
+  .economic-data-heading { align-items: flex-start; flex-direction: column; }
+  .economic-index { grid-template-columns: 1fr; }
+  .economic-detail-heading { flex-direction: column; }
+  .economic-latest { align-items: flex-start; flex-direction: column; }
+  .economic-latest-values { flex-wrap: wrap; gap: 16px 24px; }
+  .economic-latest-values strong { font-size: 15px; }
+  .economic-chart-tools { align-items: flex-start; flex-direction: column; }
+  .economic-control-group { flex-wrap: wrap; }
+  .economic-control-button { padding: 5px 7px; }
+  .economic-detail-footer { align-items: flex-start; flex-direction: column; gap: 2px; }
+  .economic-detail-footer .economic-source-link { margin-top: 3px; }
+  .economic-form-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .economic-save-button { grid-column: 1 / -1; }
   .cot-card, .currency-rates-card { padding: 14px; }
   .cot-card-heading { align-items: flex-start; flex-direction: column; }
   .currency-rates-card { min-height: 0; }

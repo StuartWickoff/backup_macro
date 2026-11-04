@@ -4,3 +4,8 @@
 /data
 .env
 .DS_Store
+/apps/web/public/economic/*
+!/apps/web/public/economic/.gitkeep
+!/apps/web/public/economic/usd/
+/apps/web/public/economic/usd/*
+!/apps/web/public/economic/usd/.gitkeep

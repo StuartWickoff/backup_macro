@@ -19,7 +19,7 @@ Socle initial + itération « sécurisation du stockage » (emplacement XDG, sen
 - Snapshots SQLite vérifiés via `VACUUM INTO` (`POST /api/backups`).
 - Placeholders de navigation pour les futurs modules.
 
-Pas encore implémenté : agrégation et synthèse des dossiers de devises, profils macro détaillés, outlook hebdomadaire, relevés d'événements, analyse de paires, versionnage des narratifs, pièces jointes, recherche plein texte, et interface d'export/sauvegarde.
+Pas encore implémenté : agrégation et synthèse des dossiers de devises, profils macro des autres devises, outlook hebdomadaire, relevés d'événements, analyse de paires, versionnage des narratifs, pièces jointes, recherche plein texte, et interface d'export/sauvegarde.
 
 ## Stack technique
 
@@ -60,6 +60,10 @@ python3 -m venv .venv
 l'API et le frontend. L'année CFTC en cours est retéléchargée à chaque lancement;
 les années précédentes sont réutilisées depuis le cache. Si l'actualisation échoue,
 un avertissement est affiché et le dashboard démarre avec les derniers graphiques publiés.
+
+Les données économiques USD sont conservées dans [economic_data/usd/history.csv](./economic_data/usd/history.csv).
+Elles ne sont pas téléchargées au démarrage : les nouvelles observations se saisissent
+depuis la fiche de chaque indicateur. Voir [economic_data/README.md](./economic_data/README.md).
 
 Le dashboard est disponible à l'adresse :
 
