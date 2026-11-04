@@ -4,6 +4,7 @@ members = [
     "apps/server",
     "apps/web",
     "crates/shared",
+    "tools/economic_data_importer",
 ]
 
 [workspace.package]

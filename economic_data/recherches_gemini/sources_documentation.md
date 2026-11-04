@@ -1,0 +1,75 @@
+# Inventaire des Sources et Définitions Macroéconomiques
+
+Ce document décrit l'ensemble des séries temporelles collectées pour la constitution du journal macroéconomique local, couvrant les devises EUR, GBP, JPY, CHF, CAD, AUD, NZD et CNY.
+
+---
+
+## Synthèse par Devise et Série
+
+| Devise | series_id | Définition précise de la série | Unité / Convention | Organisme émetteur | URL Directe / Source | Date consultation | Période couverte | Origine Source |
+|---|---|---|---|---|---|---|---|---|
+| **EUR** | `policy_rate` | ECB Deposit Facility Rate (Taux de la facilité de dépôt) | Percentage (%) | Banque Centrale Européenne (BCE) | `https://www.ecb.europa.eu/stats/policy_rates/` | 2026-11-04 | 2023-11-01 à 2026-10-01 | Primary / Official |
+| **EUR** | `hicp_headline_yoy` | Harmonised Index of Consumer Prices (HICP/IPCH) Global YoY | Percentage YoY (%) | Eurostat | `https://ec.europa.eu/eurostat/databrowser/view/prc_hicp_manr/` | 2026-11-04 | 2023-11-01 à 2026-10-01 | Investing.com / Eurostat |
+| **EUR** | `hicp_core_yoy` | HICP Core YoY (Excl. Energy, Food, Alcohol & Tobacco) | Percentage YoY (%) | Eurostat | `https://ec.europa.eu/eurostat/databrowser/view/prc_hicp_manr/` | 2026-11-04 | 2023-11-01 à 2026-10-01 | Investing.com / Eurostat |
+| **EUR** | `ppi_yoy` | Industrial Producer Price Index (PPI) Total YoY | Percentage YoY (%) | Eurostat | `https://ec.europa.eu/eurostat/databrowser/view/sts_inpp_m/` | 2026-11-04 | 2023-11-01 à 2026-10-01 | Investing.com / Eurostat |
+| **EUR** | `unemployment_rate` | Euro Area Unemployment Rate (Seasonally Adjusted) | Percentage SA (%) | Eurostat | `https://ec.europa.eu/eurostat/databrowser/view/une_rt_m/` | 2026-11-04 | 2023-11-01 à 2026-10-01 | Investing.com / Eurostat |
+| **EUR** | `real_gdp_growth` | Eurozone Real GDP Growth Rate (Quarterly QoQ) | Percentage QoQ (%) | Eurostat | `https://ec.europa.eu/eurostat/databrowser/view/namq_10_gdp/` | 2026-11-04 | 2023-10-01 à 2026-07-01 | Investing.com / Eurostat |
+| **EUR** | `sp_global_manufacturing_pmi` | HCOB Eurozone Manufacturing PMI | Index (0–100) | Hamburg Commercial Bank / S&P Global | `https://www.pmi.spglobal.com/` | 2026-11-04 | 2023-11-01 à 2026-10-01 | S&P Global |
+| **EUR** | `sp_global_services_pmi` | HCOB Eurozone Services PMI | Index (0–100) | Hamburg Commercial Bank / S&P Global | `https://www.pmi.spglobal.com/` | 2026-11-04 | 2023-11-01 à 2026-10-01 | S&P Global |
+| **GBP** | `policy_rate` | BoE Official Bank Rate | Percentage (%) | Bank of England (BoE) | `https://www.bankofengland.co.uk/boeprices/rates` | 2026-11-04 | 2023-11-01 à 2026-10-01 | Primary / Official |
+| **GBP** | `cpi_headline_yoy` | UK Consumer Prices Index (CPI) Headline YoY | Percentage YoY (%) | Office for National Statistics (ONS) | `https://www.ons.gov.uk/economy/inflationandpriceindices` | 2026-11-04 | 2023-11-01 à 2026-10-01 | Investing.com / ONS |
+| **GBP** | `cpi_core_yoy` | UK CPI Core YoY (Excl. Energy, Food, Alcohol & Tobacco) | Percentage YoY (%) | ONS | `https://www.ons.gov.uk/economy/inflationandpriceindices` | 2026-11-04 | 2023-11-01 à 2026-10-01 | Investing.com / ONS |
+| **GBP** | `ppi_yoy` | UK Producer Output Price Inflation YoY | Percentage YoY (%) | ONS | `https://www.ons.gov.uk/economy/inflationandpriceindices` | 2026-11-04 | 2023-11-01 à 2026-10-01 | Investing.com / ONS |
+| **GBP** | `unemployment_rate` | UK Unemployment Rate (3-month rolling average, SA) | Percentage SA (%) | ONS | `https://www.ons.gov.uk/employmentandlabourmarket` | 2026-11-04 | 2023-11-01 à 2026-10-01 | Investing.com / ONS |
+| **GBP** | `real_gdp_growth` | UK Real GDP Growth Rate (Quarterly QoQ) | Percentage QoQ (%) | ONS | `https://www.ons.gov.uk/economy/grossdomesticproductgdp` | 2026-11-04 | 2023-10-01 à 2026-07-01 | Investing.com / ONS |
+| **GBP** | `sp_global_manufacturing_pmi` | S&P Global UK Manufacturing PMI | Index (0–100) | S&P Global | `https://www.pmi.spglobal.com/` | 2026-11-04 | 2023-11-01 à 2026-10-01 | S&P Global |
+| **GBP** | `sp_global_services_pmi` | S&P Global UK Services PMI | Index (0–100) | S&P Global | `https://www.pmi.spglobal.com/` | 2026-11-04 | 2023-11-01 à 2026-10-01 | S&P Global |
+| **JPY** | `policy_rate` | BoJ Uncollateralized Overnight Call Rate Target | Percentage (%) | Bank of Japan (BoJ) | `https://www.boj.or.jp/en/statistics/boj/other/discount/` | 2026-11-04 | 2023-11-01 à 2026-10-01 | Primary / Official |
+| **JPY** | `cpi_headline_yoy` | Japan National CPI All Items YoY | Percentage YoY (%) | Japan Statistics Bureau | `https://www.stat.go.jp/english/data/cpi/` | 2026-11-04 | 2023-11-01 à 2026-10-01 | Investing.com / StatGovJP |
+| **JPY** | `cpi_core_yoy` | Japan CPI Core (Excl. Fresh Food) YoY | Percentage YoY (%) | Japan Statistics Bureau | `https://www.stat.go.jp/english/data/cpi/` | 2026-11-04 | 2023-11-01 à 2026-10-01 | Investing.com / StatGovJP |
+| **JPY** | `ppi_yoy` | Corporate Goods Price Index (CGPI / Domestic PPI) YoY | Percentage YoY (%) | Bank of Japan | `https://www.boj.or.jp/en/statistics/pi/cgpi_release/` | 2026-11-04 | 2023-11-01 à 2026-10-01 | Investing.com / BoJ |
+| **JPY** | `unemployment_rate` | Japan Unemployment Rate (Seasonally Adjusted) | Percentage SA (%) | Japan Statistics Bureau | `https://www.stat.go.jp/english/data/rodou/` | 2026-11-04 | 2023-11-01 à 2026-10-01 | Investing.com / StatGovJP |
+| **JPY** | `real_gdp_growth` | Japan Real GDP Growth Rate (Quarterly QoQ) | Percentage QoQ (%) | Cabinet Office Japan | `https://www.esri.cao.go.jp/en/sna/menu.html` | 2026-11-04 | 2023-10-01 à 2026-07-01 | Investing.com / ESRI |
+| **JPY** | `sp_global_manufacturing_pmi` | au Jibun Bank Japan Manufacturing PMI | Index (0–100) | au Jibun Bank / S&P Global | `https://www.pmi.spglobal.com/` | 2026-11-04 | 2023-11-01 à 2026-10-01 | S&P Global |
+| **JPY** | `sp_global_services_pmi` | au Jibun Bank Japan Services PMI | Index (0–100) | au Jibun Bank / S&P Global | `https://www.pmi.spglobal.com/` | 2026-11-04 | 2023-11-01 à 2026-10-01 | S&P Global |
+| **CHF** | `policy_rate` | SNB Policy Rate | Percentage (%) | Swiss National Bank (SNB) | `https://www.snb.ch/en/iabout/stat/statpub/zins/id/statpub_zins_cur` | 2026-11-04 | 2023-11-01 à 2026-10-01 | Primary / Official |
+| **CHF** | `cpi_headline_yoy` | Swiss Consumer Price Index YoY | Percentage YoY (%) | Federal Statistical Office (FSO) | `https://www.bfs.admin.ch/bfs/en/home/statistics/prices.html` | 2026-11-04 | 2023-11-01 à 2026-10-01 | Investing.com / FSO |
+| **CHF** | `cpi_core_yoy` | Swiss CPI Core YoY (Excl. Fresh/Seasonal Products & Energy) | Percentage YoY (%) | FSO | `https://www.bfs.admin.ch/bfs/en/home/statistics/prices.html` | 2026-11-04 | 2023-11-01 à 2026-10-01 | Investing.com / FSO |
+| **CHF** | `ppi_yoy` | Swiss Producer and Import Price Index YoY | Percentage YoY (%) | FSO | `https://www.bfs.admin.ch/bfs/en/home/statistics/prices.html` | 2026-11-04 | 2023-11-01 à 2026-10-01 | Investing.com / FSO |
+| **CHF** | `unemployment_rate` | Swiss Unemployment Rate (Seasonally Adjusted) | Percentage SA (%) | State Secretariat for Economic Affairs (SECO) | `https://www.seco.admin.ch/` | 2026-11-04 | 2023-11-01 à 2026-10-01 | Investing.com / SECO |
+| **CHF** | `real_gdp_growth` | Swiss Real GDP Growth Rate (Quarterly QoQ) | Percentage QoQ (%) | SECO | `https://www.seco.admin.ch/` | 2026-11-04 | 2023-10-01 à 2026-07-01 | Investing.com / SECO |
+| **CHF** | `sp_global_manufacturing_pmi` | procure.ch Switzerland Manufacturing PMI | Index (0–100) | procure.ch / S&P Global | `https://www.procure.ch/` | 2026-11-04 | 2023-11-01 à 2026-10-01 | S&P Global |
+| **CHF** | `sp_global_services_pmi` | procure.ch Switzerland Services PMI | Index (0–100) | procure.ch / S&P Global | `https://www.procure.ch/` | 2026-11-04 | 2023-11-01 à 2026-10-01 | S&P Global |
+| **CAD** | `policy_rate` | BoC Target for the Overnight Rate | Percentage (%) | Bank of Canada (BoC) | `https://www.bankofcanada.ca/rates/interest-rates/` | 2026-11-04 | 2023-11-01 à 2026-10-01 | Primary / Official |
+| **CAD** | `cpi_common` | Bank of Canada Preferred Core Inflation Measure: CPI-common | Percentage YoY (%) | Statistics Canada / Bank of Canada | `https://www.statcan.gc.ca/` | 2026-11-04 | 2023-11-01 à 2026-10-01 | StatCan / BoC |
+| **CAD** | `cpi_trimmed` | Bank of Canada Preferred Core Inflation Measure: CPI-trim | Percentage YoY (%) | Statistics Canada / Bank of Canada | `https://www.statcan.gc.ca/` | 2026-11-04 | 2023-11-01 à 2026-10-01 | StatCan / BoC |
+| **CAD** | `cpi_median` | Bank of Canada Preferred Core Inflation Measure: CPI-median | Percentage YoY (%) | Statistics Canada / Bank of Canada | `https://www.statcan.gc.ca/` | 2026-11-04 | 2023-11-01 à 2026-10-01 | StatCan / BoC |
+| **CAD** | `ppi_yoy` | Industrial Product Price Index (IPPI) YoY | Percentage YoY (%) | Statistics Canada | `https://www.statcan.gc.ca/` | 2026-11-04 | 2023-11-01 à 2026-10-01 | Investing.com / StatCan |
+| **CAD** | `unemployment_rate` | Canada Unemployment Rate (Seasonally Adjusted) | Percentage SA (%) | Statistics Canada | `https://www.statcan.gc.ca/` | 2026-11-04 | 2023-11-01 à 2026-10-01 | Investing.com / StatCan |
+| **CAD** | `real_gdp_growth` | Canada Real GDP Growth (Quarterly QoQ non-annualized) | Percentage QoQ (%) | Statistics Canada | `https://www.statcan.gc.ca/` | 2026-11-04 | 2023-10-01 à 2026-07-01 | Investing.com / StatCan |
+| **CAD** | `sp_global_manufacturing_pmi` | S&P Global Canada Manufacturing PMI | Index (0–100) | S&P Global | `https://www.pmi.spglobal.com/` | 2026-11-04 | 2023-11-01 à 2026-10-01 | S&P Global |
+| **CAD** | `sp_global_services_pmi` | S&P Global Canada Services PMI | Index (0–100) | S&P Global | `https://www.pmi.spglobal.com/` | 2026-11-04 | 2023-11-01 à 2026-10-01 | S&P Global |
+| **AUD** | `policy_rate` | RBA Cash Rate Target | Percentage (%) | Reserve Bank of Australia (RBA) | `https://www.rba.gov.au/statistics/cash-rate/` | 2026-11-04 | 2023-11-01 à 2026-10-01 | Primary / Official |
+| **AUD** | `cpi_trimmed_mean` | ABS CPI Trimmed Mean YoY | Percentage YoY (%) | Australian Bureau of Statistics (ABS) | `https://www.abs.gov.au/statistics/economy/price-indexes-and-inflation` | 2026-11-04 | 2023-11-01 à 2026-10-01 | Investing.com / ABS |
+| **AUD** | `cpi_weighted_median` | ABS CPI Weighted Median YoY | Percentage YoY (%) | ABS | `https://www.abs.gov.au/statistics/economy/price-indexes-and-inflation` | 2026-11-04 | 2023-11-01 à 2026-10-01 | Investing.com / ABS |
+| **AUD** | `ppi_yoy` | ABS Final Demand Producer Price Index YoY | Percentage YoY (%) | ABS | `https://www.abs.gov.au/statistics/economy/price-indexes-and-inflation` | 2026-11-04 | 2023-11-01 à 2026-10-01 | Investing.com / ABS |
+| **AUD** | `unemployment_rate` | Australia Unemployment Rate (Seasonally Adjusted) | Percentage SA (%) | ABS | `https://www.abs.gov.au/statistics/labour` | 2026-11-04 | 2023-11-01 à 2026-10-01 | Investing.com / ABS |
+| **AUD** | `real_gdp_growth` | Australia Real GDP Growth (Quarterly QoQ) | Percentage QoQ (%) | ABS | `https://www.abs.gov.au/statistics/economy/national-accounts` | 2026-11-04 | 2023-10-01 à 2026-07-01 | Investing.com / ABS |
+| **AUD** | `sp_global_manufacturing_pmi` | Judo Bank Australia Manufacturing PMI | Index (0–100) | Judo Bank / S&P Global | `https://www.pmi.spglobal.com/` | 2026-11-04 | 2023-11-01 à 2026-10-01 | S&P Global |
+| **AUD** | `sp_global_services_pmi` | Judo Bank Australia Services PMI | Index (0–100) | Judo Bank / S&P Global | `https://www.pmi.spglobal.com/` | 2026-11-04 | 2023-11-01 à 2026-10-01 | S&P Global |
+| **NZD** | `policy_rate` | RBNZ Official Cash Rate (OCR) | Percentage (%) | Reserve Bank of New Zealand (RBNZ) | `https://www.rbnz.govt.nz/monetary-policy/official-cash-rate-decisions` | 2026-11-04 | 2023-11-01 à 2026-10-01 | Primary / Official |
+| **NZD** | `cpi_headline_yoy` | New Zealand CPI Headline YoY | Percentage YoY (%) | Stats NZ | `https://www.stats.govt.nz/topics/inflation-and-prices` | 2026-11-04 | 2023-11-01 à 2026-10-01 | Investing.com / Stats NZ |
+| **NZD** | `cpi_core_yoy` | New Zealand CPI Core (Excl. Food, Household Energy & Fuels) YoY | Percentage YoY (%) | Stats NZ | `https://www.stats.govt.nz/topics/inflation-and-prices` | 2026-11-04 | 2023-11-01 à 2026-10-01 | Investing.com / Stats NZ |
+| **NZD** | `ppi_yoy` | NZ Producer Price Index Outputs YoY | Percentage YoY (%) | Stats NZ | `https://www.stats.govt.nz/topics/inflation-and-prices` | 2026-11-04 | 2023-11-01 à 2026-10-01 | Investing.com / Stats NZ |
+| **NZD** | `unemployment_rate` | NZ Household Labour Force Survey Unemployment Rate (SA) | Percentage SA (%) | Stats NZ | `https://www.stats.govt.nz/topics/employment-and-unemployment` | 2026-11-04 | 2023-11-01 à 2026-10-01 | Investing.com / Stats NZ |
+| **NZD** | `real_gdp_growth` | NZ Real GDP Growth (Quarterly QoQ) | Percentage QoQ (%) | Stats NZ | `https://www.stats.govt.nz/topics/gross-domestic-product` | 2026-11-04 | 2023-10-01 à 2026-07-01 | Investing.com / Stats NZ |
+| **NZD** | `sp_global_manufacturing_pmi` | BusinessNZ / S&P Global NZ Performance of Manufacturing Index | Index (0–100) | BusinessNZ / S&P Global | `https://www.pmi.spglobal.com/` | 2026-11-04 | 2023-11-01 à 2026-10-01 | S&P Global |
+| **NZD** | `sp_global_services_pmi` | BusinessNZ / S&P Global NZ Performance of Services Index | Index (0–100) | BusinessNZ / S&P Global | `https://www.pmi.spglobal.com/` | 2026-11-04 | 2023-11-01 à 2026-10-01 | S&P Global |
+| **CNY** | `policy_rate` | PBOC 7-Day Reverse Repo Rate (Taux de prise en pension inversée à 7 jours) | Percentage (%) | People's Bank of China (PBOC) | `http://www.pbc.gov.cn/zhengcehuobi/125207/125213/index.html` | 2026-11-04 | 2023-11-01 à 2026-10-01 | Primary / Official |
+| **CNY** | `cpi_headline_yoy` | China Consumer Price Index (CPI) Headline YoY | Percentage YoY (%) | National Bureau of Statistics of China (NBS) | `http://www.stats.gov.cn/english/` | 2026-11-04 | 2023-11-01 à 2026-10-01 | Investing.com / NBS |
+| **CNY** | `cpi_core_yoy` | China CPI Core YoY (Excl. Food & Energy) | Percentage YoY (%) | NBS | `http://www.stats.gov.cn/english/` | 2026-11-04 | 2023-11-01 à 2026-10-01 | Investing.com / NBS |
+| **CNY** | `ppi_yoy` | China Industrial Producer Price Index (PPI) YoY | Percentage YoY (%) | NBS | `http://www.stats.gov.cn/english/` | 2026-11-04 | 2023-11-01 à 2026-10-01 | Investing.com / NBS |
+| **CNY** | `unemployment_rate` | China Surveyed Urban Unemployment Rate | Percentage (%) | NBS | `http://www.stats.gov.cn/english/` | 2026-11-04 | 2023-11-01 à 2026-10-01 | Investing.com / NBS |
+| **CNY** | `real_gdp_growth` | China Real GDP Growth Rate (Quarterly YoY) | Percentage YoY (%) | NBS | `http://www.stats.gov.cn/english/` | 2026-11-04 | 2023-10-01 à 2026-07-01 | Investing.com / NBS |
+| **CNY** | `caixin_manufacturing_pmi` | Caixin China General Manufacturing PMI | Index (0–100) | Caixin / S&P Global | `https://www.pmi.spglobal.com/` | 2026-11-04 | 2023-11-01 à 2026-10-01 | Caixin / S&P Global |
+| **CNY** | `caixin_services_pmi` | Caixin China General Services PMI | Index (0–100) | Caixin / S&P Global | `https://www.pmi.spglobal.com/` | 2026-11-04 | 2023-11-01 à 2026-10-01 | Caixin / S&P Global |
