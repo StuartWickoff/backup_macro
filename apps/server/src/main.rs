@@ -35,7 +35,7 @@ struct AppState {
     /// Répertoire des snapshots, résolu au démarrage à côté de la base :
     /// jamais dérivé du répertoire courant au moment d'une requête.
     backups_dir: PathBuf,
-    economic_history_path: PathBuf,
+    economic_data_root: PathBuf,
 }
 
 #[derive(Debug, FromRow)]
@@ -114,7 +114,7 @@ async fn main() -> anyhow::Result<()> {
     let state = AppState {
         pool,
         backups_dir: layout.backups_dir.clone(),
-        economic_history_path: workspace_root().join("economic_data/usd/history.csv"),
+        economic_data_root: workspace_root(),
     };
     // Clone bon marché (pool Arc) : le pool reste accessible pour la fermeture
     // ordonnée après l'arrêt du serveur.
@@ -157,11 +157,11 @@ async fn main() -> anyhow::Result<()> {
         )
         .route("/api/backups", post(create_backup_handler))
         .route(
-            "/api/economic/usd/observations",
+            "/api/economic/{currency_code}/observations",
             get(list_economic_observations),
         )
         .route(
-            "/api/economic/usd/observations/{series_id}",
+            "/api/economic/{currency_code}/observations/{series_id}",
             post(add_economic_observation),
         )
         .fallback_service(static_files)
@@ -215,20 +215,21 @@ async fn health() -> Json<HealthResponse> {
 }
 
 async fn list_economic_observations(
+    Path(currency_code): Path<String>,
     State(state): State<AppState>,
 ) -> Result<Json<Vec<EconomicObservation>>, ApiFailure> {
-    read_economic_history(&state.economic_history_path)
-        .await
-        .map(Json)
+    let path = economic_history_path(&state.economic_data_root, &currency_code)?;
+    read_economic_history(&path, &currency_code).await.map(Json)
 }
 
 async fn add_economic_observation(
     State(state): State<AppState>,
-    Path(series_id): Path<String>,
+    Path((currency_code, series_id)): Path<(String, String)>,
     Json(draft): Json<EconomicObservationDraft>,
 ) -> Result<(StatusCode, Json<EconomicObservation>), ApiFailure> {
-    validate_economic_observation(&series_id, &draft)?;
-    let mut observations = read_economic_history(&state.economic_history_path).await?;
+    let path = economic_history_path(&state.economic_data_root, &currency_code)?;
+    validate_economic_observation(&currency_code, &series_id, &draft)?;
+    let mut observations = read_economic_history(&path, &currency_code).await?;
     let observation = EconomicObservation {
         series_id,
         date: draft.date,
@@ -272,23 +273,23 @@ async fn add_economic_observation(
                 .unwrap_or_default()
         ));
     }
-    let temporary_path = state.economic_history_path.with_extension("csv.tmp");
-    if let Some(parent) = state.economic_history_path.parent() {
+    let temporary_path = path.with_extension("csv.tmp");
+    if let Some(parent) = path.parent() {
         tokio::fs::create_dir_all(parent).await.map_err(|error| {
-            error!(?error, "Could not create the USD economic-data directory");
+            error!(?error, currency = %currency_code, "Could not create the economic-data directory");
             ApiFailure::internal("Economic data could not be saved.")
         })?;
     }
     tokio::fs::write(&temporary_path, csv)
         .await
         .map_err(|error| {
-            error!(?error, "Could not write temporary USD economic history");
+            error!(?error, currency = %currency_code, "Could not write temporary economic history");
             ApiFailure::internal("Economic data could not be saved.")
         })?;
-    tokio::fs::rename(&temporary_path, &state.economic_history_path)
+    tokio::fs::rename(&temporary_path, &path)
         .await
         .map_err(|error| {
-            error!(?error, "Could not publish USD economic history");
+            error!(?error, currency = %currency_code, "Could not publish economic history");
             ApiFailure::internal("Economic data could not be saved.")
         })?;
 
@@ -324,16 +325,31 @@ fn economic_month_index(date: &str) -> i32 {
     year * 12 + month - 1
 }
 
+fn economic_history_path(
+    root: &std::path::Path,
+    currency_code: &str,
+) -> Result<PathBuf, ApiFailure> {
+    match currency_code {
+        "USD" => Ok(root.join("economic_data/usd/history.csv")),
+        "EUR" | "GBP" | "JPY" | "CHF" | "CAD" | "AUD" | "NZD" | "CNY" => Ok(root
+            .join("data_eco")
+            .join(currency_code.to_ascii_lowercase())
+            .join("history.csv")),
+        _ => Err(ApiFailure::bad_request("Unknown economic-data currency.")),
+    }
+}
+
 async fn read_economic_history(
     path: &std::path::Path,
+    currency_code: &str,
 ) -> Result<Vec<EconomicObservation>, ApiFailure> {
     let contents = tokio::fs::read_to_string(path).await.map_err(|error| {
-        error!(?error, path = %path.display(), "Could not read USD economic history");
+        error!(?error, path = %path.display(), currency = %currency_code, "Could not read economic history");
         ApiFailure::internal("Economic history could not be read.")
     })?;
     let mut lines = contents.lines();
     if lines.next() != Some("series_id,date,value,value_secondary") {
-        error!(path = %path.display(), "USD economic history has an invalid CSV header");
+        error!(path = %path.display(), currency = %currency_code, "Economic history has an invalid CSV header");
         return Err(ApiFailure::internal(
             "Economic history has an invalid CSV header.",
         ));
@@ -344,10 +360,7 @@ async fn read_economic_history(
         .map(|(index, line)| {
             let columns = line.split(',').collect::<Vec<_>>();
             if columns.len() != 4 {
-                error!(
-                    line = index + 2,
-                    "USD economic history has an invalid CSV row"
-                );
+                error!(line = index + 2, "Economic history has an invalid CSV row");
                 return Err(ApiFailure::internal(
                     "Economic history contains an invalid CSV row.",
                 ));
@@ -355,7 +368,7 @@ async fn read_economic_history(
             let value = columns[2].parse::<f64>().map_err(|_| {
                 error!(
                     line = index + 2,
-                    "USD economic history contains an invalid value"
+                    "Economic history contains an invalid value"
                 );
                 ApiFailure::internal("Economic history contains an invalid value.")
             })?;
@@ -365,7 +378,7 @@ async fn read_economic_history(
                 Some(columns[3].parse::<f64>().map_err(|_| {
                     error!(
                         line = index + 2,
-                        "USD economic history contains an invalid secondary value"
+                        "Economic history contains an invalid secondary value"
                     );
                     ApiFailure::internal("Economic history contains an invalid value.")
                 })?)
@@ -377,6 +390,7 @@ async fn read_economic_history(
                 value_secondary,
             };
             validate_economic_observation(
+                currency_code,
                 &row.series_id,
                 &EconomicObservationDraft {
                     date: row.date.clone(),
@@ -387,7 +401,7 @@ async fn read_economic_history(
             .map_err(|_| {
                 error!(
                     line = index + 2,
-                    "USD economic history contains an invalid observation"
+                    "Economic history contains an invalid observation"
                 );
                 ApiFailure::internal("Economic history contains an invalid observation.")
             })?;
@@ -397,19 +411,137 @@ async fn read_economic_history(
 }
 
 fn validate_economic_observation(
+    currency_code: &str,
     series_id: &str,
     draft: &EconomicObservationDraft,
 ) -> Result<(), ApiFailure> {
-    const SERIES: &[&str] = &[
-        "fed_target_range",
-        "pce_inflation",
-        "unemployment_rate",
-        "nonfarm_payrolls",
-        "real_gdp_growth",
-        "ism_manufacturing_pmi",
-    ];
-    if !SERIES.contains(&series_id) {
-        return Err(ApiFailure::bad_request("Unknown USD economic indicator."));
+    let (series, quarterly) = match currency_code {
+        "USD" => (
+            &[
+                "cpi_inflation",
+                "fed_target_range",
+                "pce_inflation",
+                "ppi_inflation",
+                "unemployment_rate",
+                "nonfarm_payrolls",
+                "real_gdp_growth",
+                "ism_manufacturing_pmi",
+                "ism_services_pmi",
+            ][..],
+            series_id == "real_gdp_growth",
+        ),
+        "EUR" => (
+            &[
+                "policy_rate",
+                "hicp_headline_yoy",
+                "hicp_core_yoy",
+                "ppi_yoy",
+                "unemployment_rate",
+                "gdp_qoq",
+                "gdp_yoy",
+                "sp_global_manufacturing_pmi",
+                "sp_global_services_pmi",
+            ][..],
+            matches!(series_id, "gdp_qoq" | "gdp_yoy"),
+        ),
+        "GBP" | "JPY" => (
+            &[
+                "policy_rate",
+                "cpi_headline_yoy",
+                "cpi_core_yoy",
+                "ppi_yoy",
+                "unemployment_rate",
+                "gdp_qoq",
+                "gdp_yoy",
+                "sp_global_manufacturing_pmi",
+                "sp_global_services_pmi",
+            ][..],
+            matches!(series_id, "gdp_qoq" | "gdp_yoy"),
+        ),
+        "CHF" => (
+            &[
+                "policy_rate",
+                "cpi_headline_yoy",
+                "cpi_core_yoy",
+                "ppi_yoy",
+                "unemployment_rate",
+                "gdp_qoq",
+                "gdp_yoy",
+            ][..],
+            matches!(series_id, "unemployment_rate" | "gdp_qoq" | "gdp_yoy"),
+        ),
+        "CAD" => (
+            &[
+                "policy_rate",
+                "cpi_common",
+                "cpi_median_yoy",
+                "cpi_trimmed_yoy",
+                "ppi_yoy",
+                "unemployment_rate",
+                "gdp_qoq",
+                "gdp_yoy",
+                "sp_global_manufacturing_pmi",
+                "sp_global_services_pmi",
+            ][..],
+            matches!(series_id, "gdp_qoq" | "gdp_yoy"),
+        ),
+        "AUD" => (
+            &[
+                "policy_rate",
+                "cpi_trimmed_yoy",
+                "cpi_weighted_median_yoy",
+                "ppi_yoy",
+                "unemployment_rate",
+                "gdp_qoq",
+                "gdp_yoy",
+                "sp_global_manufacturing_pmi",
+                "sp_global_services_pmi",
+            ][..],
+            matches!(
+                series_id,
+                "cpi_trimmed_yoy" | "cpi_weighted_median_yoy" | "ppi_yoy" | "gdp_qoq" | "gdp_yoy"
+            ),
+        ),
+        "NZD" => (
+            &[
+                "policy_rate",
+                "cpi_headline_yoy",
+                "cpi_core_proxy_yoy",
+                "ppi_yoy",
+                "unemployment_rate",
+                "gdp_qoq",
+                "gdp_yoy",
+            ][..],
+            matches!(
+                series_id,
+                "cpi_headline_yoy"
+                    | "cpi_core_proxy_yoy"
+                    | "ppi_yoy"
+                    | "unemployment_rate"
+                    | "gdp_qoq"
+                    | "gdp_yoy"
+            ),
+        ),
+        "CNY" => (
+            &[
+                "policy_rate",
+                "cpi_headline_yoy",
+                "cpi_core_yoy",
+                "ppi_yoy",
+                "unemployment_rate",
+                "gdp_qoq",
+                "gdp_yoy",
+                "ratingdog_manufacturing_pmi",
+                "ratingdog_services_pmi",
+            ][..],
+            matches!(series_id, "gdp_qoq" | "gdp_yoy"),
+        ),
+        _ => return Err(ApiFailure::bad_request("Unknown economic-data currency.")),
+    };
+    if !series.contains(&series_id) {
+        return Err(ApiFailure::bad_request(
+            "Unknown economic indicator for this currency.",
+        ));
     }
     if !valid_iso_date(&draft.date) {
         return Err(ApiFailure::bad_request(
@@ -423,13 +555,18 @@ fn validate_economic_observation(
     {
         return Err(ApiFailure::bad_request("Values must be finite numbers."));
     }
-    let has_secondary = matches!(series_id, "fed_target_range" | "pce_inflation");
+    let has_secondary = currency_code == "USD"
+        && matches!(
+            series_id,
+            "cpi_inflation" | "fed_target_range" | "pce_inflation" | "ppi_inflation"
+        );
     if draft.value_secondary.is_some() != has_secondary {
         return Err(ApiFailure::bad_request(
             "This indicator has an invalid number of values.",
         ));
     }
-    if series_id == "fed_target_range"
+    if currency_code == "USD"
+        && series_id == "fed_target_range"
         && draft
             .value_secondary
             .is_some_and(|upper| draft.value > upper)
@@ -438,10 +575,27 @@ fn validate_economic_observation(
             "The lower Fed target rate must not exceed the upper rate.",
         ));
     }
-    if series_id == "ism_manufacturing_pmi" && !(0.0..=100.0).contains(&draft.value) {
+    if (series_id.ends_with("_pmi") || series_id.ends_with("_services_pmi"))
+        && !(0.0..=100.0).contains(&draft.value)
+    {
         return Err(ApiFailure::bad_request(
             "PMI values must be between 0 and 100.",
         ));
+    }
+    if currency_code == "USD" && series_id == "nonfarm_payrolls" && draft.value.fract() != 0.0 {
+        return Err(ApiFailure::bad_request(
+            "Nonfarm payroll changes must be whole thousands (K).",
+        ));
+    }
+    if currency_code != "USD" {
+        let day = draft.date.get(8..10).unwrap_or_default();
+        if day != "01"
+            || (quarterly && !matches!(draft.date.get(5..7), Some("01" | "04" | "07" | "10")))
+        {
+            return Err(ApiFailure::bad_request(
+                "Economic observation date does not match its monthly or quarterly period.",
+            ));
+        }
     }
     Ok(())
 }
@@ -661,6 +815,7 @@ async fn create_backup_handler(
     }
 }
 
+#[derive(Debug)]
 struct ApiFailure {
     status: StatusCode,
     message: String,
@@ -725,12 +880,13 @@ mod tests {
         let pool = open_or_initialize(&layout, &sqlx::migrate!("./migrations"))
             .await
             .unwrap();
-        let economic_history_path = dir.join("history.csv");
-        std::fs::write(
-            &economic_history_path,
-            "series_id,date,value,value_secondary\n",
-        )
-        .unwrap();
+        for currency_code in [
+            "USD", "EUR", "GBP", "JPY", "CHF", "CAD", "AUD", "NZD", "CNY",
+        ] {
+            let path = economic_history_path(dir, currency_code).unwrap();
+            std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+            std::fs::write(&path, "series_id,date,value,value_secondary\n").unwrap();
+        }
         Router::new()
             .route("/api/health", get(health))
             .route("/api/entries", get(list_entries).post(create_entry))
@@ -748,17 +904,17 @@ mod tests {
             )
             .route("/api/backups", post(create_backup_handler))
             .route(
-                "/api/economic/usd/observations",
+                "/api/economic/{currency_code}/observations",
                 get(list_economic_observations),
             )
             .route(
-                "/api/economic/usd/observations/{series_id}",
+                "/api/economic/{currency_code}/observations/{series_id}",
                 post(add_economic_observation),
             )
             .with_state(AppState {
                 pool,
                 backups_dir: layout.backups_dir,
-                economic_history_path,
+                economic_data_root: dir.to_path_buf(),
             })
     }
 
@@ -792,15 +948,27 @@ mod tests {
         value: f64,
         value_secondary: Option<f64>,
     ) -> Request<Body> {
+        add_currency_economic_observation_request("USD", series_id, date, value, value_secondary)
+    }
+
+    fn add_currency_economic_observation_request(
+        currency_code: &str,
+        series_id: &str,
+        date: &str,
+        value: f64,
+        value_secondary: Option<f64>,
+    ) -> Request<Body> {
         let body = serde_json::json!({
             "date": date,
             "value": value,
             "value_secondary": value_secondary,
         });
-        Request::post(format!("/api/economic/usd/observations/{series_id}"))
-            .header(header::CONTENT_TYPE, "application/json")
-            .body(Body::from(body.to_string()))
-            .unwrap()
+        Request::post(format!(
+            "/api/economic/{currency_code}/observations/{series_id}"
+        ))
+        .header(header::CONTENT_TYPE, "application/json")
+        .body(Body::from(body.to_string()))
+        .unwrap()
     }
 
     async fn body_string(response: axum::response::Response) -> String {
@@ -989,7 +1157,7 @@ mod tests {
 
         let response = app
             .oneshot(
-                Request::get("/api/economic/usd/observations")
+                Request::get("/api/economic/USD/observations")
                     .body(Body::empty())
                     .unwrap(),
             )
@@ -999,9 +1167,133 @@ mod tests {
         let rows: serde_json::Value = serde_json::from_str(&body_string(response).await).unwrap();
         assert_eq!(rows.as_array().unwrap().len(), 1);
         assert_eq!(rows[0]["value"], 4.1);
-        assert!(std::fs::read_to_string(dir.path().join("history.csv"))
-            .unwrap()
-            .contains("unemployment_rate,2026-10-01,4.1,"));
+        assert!(
+            std::fs::read_to_string(economic_history_path(dir.path(), "USD").unwrap())
+                .unwrap()
+                .contains("unemployment_rate,2026-10-01,4.1,")
+        );
+    }
+
+    #[tokio::test]
+    async fn cpi_and_ppi_observations_accept_primary_and_secondary_values() {
+        let dir = tempfile::tempdir().unwrap();
+        let app = test_app(dir.path()).await;
+
+        for series_id in ["cpi_inflation", "ppi_inflation"] {
+            let response = app
+                .clone()
+                .oneshot(add_economic_observation_request(
+                    series_id,
+                    "2026-10-01",
+                    3.7,
+                    Some(2.6),
+                ))
+                .await
+                .unwrap();
+            assert_eq!(response.status(), StatusCode::CREATED);
+        }
+
+        let csv =
+            std::fs::read_to_string(economic_history_path(dir.path(), "USD").unwrap()).unwrap();
+        assert!(csv.contains("cpi_inflation,2026-10-01,3.7,2.6"));
+        assert!(csv.contains("ppi_inflation,2026-10-01,3.7,2.6"));
+    }
+
+    #[tokio::test]
+    async fn ism_services_pmi_observation_is_accepted() {
+        let dir = tempfile::tempdir().unwrap();
+        let app = test_app(dir.path()).await;
+        let response = app
+            .oneshot(add_economic_observation_request(
+                "ism_services_pmi",
+                "2026-10-01",
+                54.9,
+                None,
+            ))
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::CREATED);
+        assert!(
+            std::fs::read_to_string(economic_history_path(dir.path(), "USD").unwrap())
+                .unwrap()
+                .contains("ism_services_pmi,2026-10-01,54.9,")
+        );
+    }
+
+    #[tokio::test]
+    async fn economic_data_routes_keep_currency_series_and_quarterly_periods_separate() {
+        let dir = tempfile::tempdir().unwrap();
+        let app = test_app(dir.path()).await;
+
+        for (currency, series, date, value) in [
+            ("CAD", "cpi_common", "2026-10-01", 2.4),
+            ("CAD", "cpi_trimmed_yoy", "2026-10-01", 2.5),
+            ("CAD", "cpi_median_yoy", "2026-10-01", 2.6),
+            ("AUD", "cpi_trimmed_yoy", "2026-07-01", 3.7),
+            ("AUD", "cpi_weighted_median_yoy", "2026-07-01", 3.6),
+            ("NZD", "unemployment_rate", "2026-10-01", 5.7),
+            ("EUR", "gdp_qoq", "2026-07-01", 0.2),
+            ("CNY", "ratingdog_manufacturing_pmi", "2026-10-01", 50.8),
+        ] {
+            let response = app
+                .clone()
+                .oneshot(add_currency_economic_observation_request(
+                    currency, series, date, value, None,
+                ))
+                .await
+                .unwrap();
+            assert_eq!(
+                response.status(),
+                StatusCode::CREATED,
+                "{currency} {series}"
+            );
+        }
+
+        let invalid_quarter = app
+            .clone()
+            .oneshot(add_currency_economic_observation_request(
+                "AUD",
+                "cpi_trimmed_yoy",
+                "2026-08-01",
+                3.7,
+                None,
+            ))
+            .await
+            .unwrap();
+        assert_eq!(invalid_quarter.status(), StatusCode::BAD_REQUEST);
+
+        let response = app
+            .clone()
+            .oneshot(
+                Request::get("/api/economic/AUD/observations")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let rows: serde_json::Value = serde_json::from_str(&body_string(response).await).unwrap();
+        assert_eq!(rows.as_array().unwrap().len(), 2);
+
+        let aud_csv =
+            std::fs::read_to_string(economic_history_path(dir.path(), "AUD").unwrap()).unwrap();
+        let cad_csv =
+            std::fs::read_to_string(economic_history_path(dir.path(), "CAD").unwrap()).unwrap();
+        assert!(aud_csv.contains("cpi_trimmed_yoy,2026-07-01,3.7,"));
+        assert!(!aud_csv.contains("cpi_common"));
+        assert!(cad_csv.contains("cpi_common,2026-10-01,2.4,"));
+        assert!(!cad_csv.contains("cpi_weighted_median_yoy"));
+    }
+
+    #[tokio::test]
+    async fn checked_in_economic_histories_match_their_currency_schema() {
+        let root = workspace_root();
+        for currency_code in ["EUR", "GBP", "JPY", "CHF", "CAD", "AUD", "NZD", "CNY"] {
+            let path = economic_history_path(&root, currency_code).unwrap();
+            let rows = read_economic_history(&path, currency_code)
+                .await
+                .unwrap_or_else(|error| panic!("{currency_code} history is invalid: {error:?}"));
+            assert!(!rows.is_empty(), "{currency_code} history is empty");
+        }
     }
 
     #[tokio::test]
@@ -1013,6 +1305,10 @@ mod tests {
             add_economic_observation_request("unemployment_rate", "2026-02-30", 4.2, None),
             add_economic_observation_request("outside_usd", "2026-10-01", 4.2, None),
             add_economic_observation_request("ism_manufacturing_pmi", "2026-10-01", 101.0, None),
+            add_economic_observation_request("ism_services_pmi", "2026-10-01", 101.0, None),
+            add_economic_observation_request("nonfarm_payrolls", "2026-10-01", 12.5, None),
+            add_economic_observation_request("cpi_inflation", "2026-10-01", 3.7, None),
+            add_economic_observation_request("ppi_inflation", "2026-10-01", 3.7, None),
         ] {
             let response = app.clone().oneshot(request).await.unwrap();
             assert_eq!(response.status(), StatusCode::BAD_REQUEST);
@@ -1024,7 +1320,7 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let app = test_app(dir.path()).await;
         std::fs::write(
-            dir.path().join("history.csv"),
+            economic_history_path(dir.path(), "USD").unwrap(),
             concat!(
                 "series_id,date,value,value_secondary\n",
                 "unemployment_rate,2023-10-01,3.8,\n",
@@ -1048,7 +1344,7 @@ mod tests {
 
         let response = app
             .oneshot(
-                Request::get("/api/economic/usd/observations")
+                Request::get("/api/economic/USD/observations")
                     .body(Body::empty())
                     .unwrap(),
             )
@@ -1069,7 +1365,7 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let app = test_app(dir.path()).await;
         std::fs::write(
-            dir.path().join("history.csv"),
+            economic_history_path(dir.path(), "USD").unwrap(),
             concat!(
                 "series_id,date,value,value_secondary\n",
                 "unemployment_rate,2026-11-01,4.1,\n",
@@ -1088,7 +1384,7 @@ mod tests {
             .unwrap();
         assert_eq!(response.status(), StatusCode::BAD_REQUEST);
         assert_eq!(
-            std::fs::read_to_string(dir.path().join("history.csv")).unwrap(),
+            std::fs::read_to_string(economic_history_path(dir.path(), "USD").unwrap()).unwrap(),
             concat!(
                 "series_id,date,value,value_secondary\n",
                 "unemployment_rate,2026-11-01,4.1,\n",

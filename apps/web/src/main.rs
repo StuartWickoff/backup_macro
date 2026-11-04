@@ -36,73 +36,123 @@ struct EconomicIndicator {
     id: &'static str,
     title: &'static str,
     unit: &'static str,
+    decimals: usize,
     source_name: &'static str,
     source_url: &'static str,
     note: &'static str,
     primary_label: &'static str,
     secondary_label: Option<&'static str>,
+    quarterly: bool,
 }
 
-const ECONOMIC_INDICATORS: [EconomicIndicator; 6] = [
+const ECONOMIC_INDICATORS: [EconomicIndicator; 9] = [
+    EconomicIndicator {
+        id: "cpi_inflation",
+        title: "Inflation CPI",
+        unit: "% sur 12 mois",
+        decimals: 1,
+        source_name: "Bureau of Labor Statistics",
+        source_url: "https://www.bls.gov/cpi/",
+        note: "Inflation CPI globale et sous-jacente sur 12 mois, calculée depuis les indices CPI non désaisonnalisés publiés par le BLS. La mesure sous-jacente exclut l’alimentation et l’énergie.",
+        primary_label: "CPI global",
+        secondary_label: Some("CPI sous-jacent"),
+        quarterly: false,
+    },
     EconomicIndicator {
         id: "fed_target_range",
         title: "Taux directeur Fed",
         unit: "%",
+        decimals: 2,
         source_name: "Federal Reserve Board",
-        source_url: "https://fred.stlouisfed.org/series/DFEDTARL",
+        source_url: "https://www.federalreserve.gov/monetarypolicy/openmarket.htm",
         note: "Fourchette cible du FOMC, relevée mensuellement à partir de la dernière valeur connue.",
         primary_label: "Borne basse",
         secondary_label: Some("Borne haute"),
+        quarterly: false,
     },
     EconomicIndicator {
         id: "pce_inflation",
         title: "Inflation PCE",
         unit: "% sur 12 mois",
+        decimals: 1,
         source_name: "Bureau of Economic Analysis",
-        source_url: "https://fred.stlouisfed.org/series/PCEPI",
-        note: "Inflation PCE globale et sous-jacente, calculée sur les indices publiés.",
+        source_url: "https://www.bea.gov/data/income-saving/personal-income",
+        note: "Inflation PCE globale et sous-jacente, calculée sur les indices publiés. Affichage arrondi à un chiffre après la virgule.",
         primary_label: "PCE global",
         secondary_label: Some("PCE sous-jacent"),
+        quarterly: false,
+    },
+    EconomicIndicator {
+        id: "ppi_inflation",
+        title: "Inflation PPI",
+        unit: "% sur 12 mois",
+        decimals: 1,
+        source_name: "Bureau of Labor Statistics",
+        source_url: "https://www.bls.gov/ppi/",
+        note: "Inflation PPI globale et sous-jacente sur 12 mois, calculée depuis les indices de demande finale publiés par le BLS. La mesure sous-jacente exclut l’alimentation, l’énergie et les services commerciaux.",
+        primary_label: "PPI global",
+        secondary_label: Some("PPI sous-jacent"),
+        quarterly: false,
     },
     EconomicIndicator {
         id: "unemployment_rate",
         title: "Taux de chômage",
         unit: "%",
+        decimals: 1,
         source_name: "Bureau of Labor Statistics",
-        source_url: "https://fred.stlouisfed.org/series/UNRATE",
+        source_url: "https://www.bls.gov/cps/",
         note: "Taux de chômage civil désaisonnalisé, publié chaque mois.",
         primary_label: "Chômage",
         secondary_label: None,
+        quarterly: false,
     },
     EconomicIndicator {
         id: "nonfarm_payrolls",
         title: "Emploi non agricole",
-        unit: "milliers",
+        unit: "K",
+        decimals: 0,
         source_name: "Bureau of Labor Statistics",
-        source_url: "https://fred.stlouisfed.org/series/PAYEMS",
-        note: "Niveau de l’emploi salarié non agricole, en milliers de personnes.",
-        primary_label: "Emploi",
+        source_url: "https://www.bls.gov/news.release/empsit.toc.htm",
+        note: "Variation mensuelle de l’emploi salarié non agricole, exprimée en K. Les valeurs initiales ont été retranscrites depuis les captures Investing.com fournies; la référence statistique est le BLS Current Employment Statistics.",
+        primary_label: "Variation mensuelle (K)",
         secondary_label: None,
+        quarterly: false,
     },
     EconomicIndicator {
         id: "real_gdp_growth",
         title: "Croissance du PIB réel",
         unit: "% annualisé",
+        decimals: 1,
         source_name: "Bureau of Economic Analysis",
-        source_url: "https://fred.stlouisfed.org/series/GDPC1",
-        note: "Variation trimestrielle annualisée calculée à partir du PIB réel.",
+        source_url: "https://www.bea.gov/data/gdp/gross-domestic-product",
+        note: "Variation trimestrielle annualisée du PIB réel. Historique saisi depuis la colonne « Actuel » des captures fournies : dernière valeur publiée pour chaque trimestre, hors prévision et valeur précédente.",
         primary_label: "PIB réel",
         secondary_label: None,
+        quarterly: true,
     },
     EconomicIndicator {
         id: "ism_manufacturing_pmi",
         title: "PMI manufacturier ISM",
         unit: "indice",
+        decimals: 1,
         source_name: "Institute for Supply Management",
-        source_url: "https://www.ismworld.org/supply-management-news-and-reports/reports/ism-report-on-business/",
-        note: "Indice de diffusion mensuel; au-dessus de 50, l’activité est généralement en expansion.",
+        source_url: "https://www.ismworld.org/supply-management-news-and-reports/reports/ism-pmi-reports/pmi/october/",
+        note: "Indice de diffusion mensuel publié par l’ISM; au-dessus de 50, le secteur manufacturier est généralement en expansion. Les valeurs initiales viennent du tableau historique ISM à 12 mois.",
         primary_label: "PMI",
         secondary_label: None,
+        quarterly: false,
+    },
+    EconomicIndicator {
+        id: "ism_services_pmi",
+        title: "PMI services ISM",
+        unit: "indice",
+        decimals: 1,
+        source_name: "Institute for Supply Management",
+        source_url: "https://www.ismworld.org/supply-management-news-and-reports/reports/ism-pmi-reports/services/september/",
+        note: "Indice de diffusion mensuel publié par l’ISM; au-dessus de 50, le secteur des services est généralement en expansion. Les valeurs initiales viennent du tableau historique ISM à 12 mois.",
+        primary_label: "PMI services",
+        secondary_label: None,
+        quarterly: false,
     },
 ];
 
@@ -754,25 +804,28 @@ fn App() -> impl IntoView {
                                     </section>
                                 </div>
 
-                                {if currency.code == "USD" {
-                                    view! {
-                                        <section class="economic-data-section">
-                                            <div class="economic-data-heading">
-                                                <div>
-                                                    <div class="eyebrow">"FONDAMENTAUX · SOURCES OFFICIELLES"</div>
-                                                    <h2>"Données économiques"</h2>
-                                                </div>
-                                                <span class="cot-indicator-label">"DONNÉES RÉALISÉES · SANS CONSENSUS"</span>
-                                            </div>
+                                <section class="economic-data-section">
+                                    <div class="economic-data-heading">
+                                        <div>
+                                            <div class="eyebrow">"FONDAMENTAUX · SOURCES PRIMAIRES"</div>
+                                            <h2>"Données économiques"</h2>
+                                        </div>
+                                        <span class="cot-indicator-label">"DONNÉES RÉALISÉES · SANS CONSENSUS"</span>
+                                    </div>
+                                    <p class="economic-data-intro">
+                                        {format!("Historique {} conservé dans un CSV local, sans actualisation externe. Ouvrez un indicateur pour choisir sa période et son affichage, puis saisir une nouvelle donnée. Les séries absentes ou partielles ne sont pas estimées.", currency.code)}
+                                    </p>
+                                    {if matches!(currency.code, "CHF" | "NZD") {
+                                        view! {
                                             <p class="economic-data-intro">
-                                                "Historique USD conservé dans un CSV local, sans actualisation externe. Ouvrez un indicateur pour choisir sa période et son affichage, puis saisir une nouvelle donnée."
+                                                "PMI S&P Global non collecté pour cette devise : aucun substitut n’est présenté."
                                             </p>
-                                            <EconomicDashboard/>
-                                        </section>
-                                    }.into_any()
-                                } else {
-                                    ().into_any()
-                                }}
+                                        }.into_any()
+                                    } else {
+                                        ().into_any()
+                                    }}
+                                    <EconomicDashboard currency_code=currency.code/>
+                                </section>
 
                                 <section class="currency-notes">
                                     <div class="currency-notes-heading">
@@ -1093,7 +1146,7 @@ fn App() -> impl IntoView {
 }
 
 #[component]
-fn EconomicDashboard() -> impl IntoView {
+fn EconomicDashboard(currency_code: &'static str) -> impl IntoView {
     let (observations, set_observations) =
         signal::<Option<Result<Vec<EconomicObservation>, String>>>(None);
     let (selected_indicator, set_selected_indicator) = signal::<Option<String>>(None);
@@ -1104,16 +1157,19 @@ fn EconomicDashboard() -> impl IntoView {
     let (secondary_value, set_secondary_value) = signal(String::new());
     let (save_status, set_save_status) = signal(String::new());
 
+    let fetch_currency = currency_code;
     spawn_local(async move {
-        set_observations.set(Some(fetch_economic_observations().await));
+        set_observations.set(Some(fetch_economic_observations(fetch_currency).await));
     });
 
+    let save_currency = currency_code;
     let save_observation = move |event: leptos::ev::SubmitEvent| {
         event.prevent_default();
         let Some(series_id) = selected_indicator.get() else {
             return;
         };
-        let indicator = economic_indicator(&series_id).expect("selected indicator is known");
+        let indicator =
+            economic_indicator(save_currency, &series_id).expect("selected indicator is known");
         let parsed_value = value.get().trim().parse::<f64>();
         let Ok(parsed_value) = parsed_value else {
             set_save_status.set("Saisissez une valeur numérique valide.".to_string());
@@ -1137,8 +1193,9 @@ fn EconomicDashboard() -> impl IntoView {
         };
         set_save_status.set("Enregistrement…".to_string());
 
+        let currency_code = save_currency;
         spawn_local(async move {
-            match add_economic_observation(&series_id, draft).await {
+            match add_economic_observation(currency_code, &series_id, draft).await {
                 Ok(saved) => {
                     set_observations.update(|current| {
                         if let Some(Ok(rows)) = current {
@@ -1168,7 +1225,7 @@ fn EconomicDashboard() -> impl IntoView {
         <div class="economic-dashboard">
             {move || match observations.get() {
                 None => view! {
-                    <p class="cot-state">"Chargement de l’historique USD local…"</p>
+                    <p class="cot-state">{format!("Chargement de l’historique {} local…", currency_code)}</p>
                 }.into_any(),
                 Some(Err(error)) => view! {
                     <p class="cot-state cot-state-error" role="alert">
@@ -1179,7 +1236,7 @@ fn EconomicDashboard() -> impl IntoView {
                     match selected_indicator.get() {
                         None => view! {
                             <div class="economic-index">
-                                {ECONOMIC_INDICATORS.into_iter().map(|indicator| {
+                                {economic_indicators(currency_code).into_iter().map(|indicator| {
                                     let series_rows = rows.iter()
                                         .filter(|row| row.series_id == indicator.id)
                                         .cloned()
@@ -1210,7 +1267,7 @@ fn EconomicDashboard() -> impl IntoView {
                                                 }.into_any(),
                                                 None => view! {
                                                     <span class="economic-index-value economic-index-empty">
-                                                        "Aucune donnée locale"
+                                                        "Aucune observation dans ce CSV"
                                                     </span>
                                                     <span class="economic-index-meta">
                                                         {format!("{} · saisie manuelle", indicator.unit)}
@@ -1222,7 +1279,7 @@ fn EconomicDashboard() -> impl IntoView {
                                 }).collect_view()}
                             </div>
                         }.into_any(),
-                        Some(id) => match economic_indicator(&id) {
+                        Some(id) => match economic_indicator(currency_code, &id) {
                             Some(indicator) => {
                                 let mut series_rows = rows.into_iter()
                                     .filter(|row| row.series_id == indicator.id)
@@ -1238,15 +1295,16 @@ fn EconomicDashboard() -> impl IntoView {
                                                 set_save_status.set(String::new());
                                             }
                                         >
-                                            <span aria-hidden="true">"←"</span> "Tous les indicateurs USD"
+                                            <span aria-hidden="true">"←"</span>
+                                            {format!("Tous les indicateurs {}", currency_code)}
                                         </button>
                                         <div class="economic-detail-heading">
                                             <div>
-                                                <div class="eyebrow">"ÉTATS-UNIS · DONNÉES RÉALISÉES"</div>
+                                                <div class="eyebrow">{format!("{} · DONNÉES RÉALISÉES", currency_code)}</div>
                                                 <h3>{indicator.title}</h3>
                                                 <p>{indicator.note}</p>
                                             </div>
-                                            <span class="cot-indicator-label">"HISTORIQUE LOCAL · MAX. 3 ANS"</span>
+                                            <span class="cot-indicator-label">{format!("HISTORIQUE LOCAL · {} OBS.", series_rows.len())}</span>
                                         </div>
                                         <div class="economic-latest">
                                             {match latest.as_ref() {
@@ -1254,25 +1312,25 @@ fn EconomicDashboard() -> impl IntoView {
                                                     <div class="economic-latest-values">
                                                         <div>
                                                             <span>{indicator.primary_label}</span>
-                                                            <strong>{format_economic_value(latest.value, indicator.unit)}</strong>
+                                                            <strong>{format_economic_value(latest.value, indicator)}</strong>
                                                         </div>
                                                         {indicator.secondary_label.map(|label| view! {
                                                             <div>
                                                                 <span>{label}</span>
                                                                 <strong>
                                                                     {latest.value_secondary
-                                                                        .map(|number| format_economic_value(number, indicator.unit))
+                                                                        .map(|number| format_economic_value(number, indicator))
                                                                         .unwrap_or_else(|| "—".to_string())}
                                                                 </strong>
                                                             </div>
                                                         })}
                                                     </div>
                                                     <span class="economic-latest-date">
-                                                        {format!("Période de la donnée · {}", format_date(&latest.date))}
+                                                        {format!("Période de la donnée · {}", economic_period_label(indicator, &latest.date))}
                                                     </span>
                                                 }.into_any(),
                                                 None => view! {
-                                                    <p>"Aucune observation pour cet indicateur. Ajoutez la dernière publication ci-dessous."</p>
+                                                    <p>"Aucune observation locale pour cet indicateur. Ajoutez une publication ci-dessous."</p>
                                                 }.into_any(),
                                             }}
                                         </div>
@@ -1353,7 +1411,7 @@ fn EconomicDashboard() -> impl IntoView {
                                                         <span>{indicator.primary_label}</span>
                                                         <input
                                                             type="number"
-                                                            step="any"
+                                                            step=if indicator.decimals == 0 { "1" } else { "any" }
                                                             required
                                                             prop:value=move || value.get()
                                                             on:input=move |event| set_value.set(event_target_value(&event))
@@ -1364,7 +1422,7 @@ fn EconomicDashboard() -> impl IntoView {
                                                             <span>{label}</span>
                                                             <input
                                                                 type="number"
-                                                                step="any"
+                                                                step=if indicator.decimals == 0 { "1" } else { "any" }
                                                                 required
                                                                 prop:value=move || secondary_value.get()
                                                                 on:input=move |event| set_secondary_value.set(event_target_value(&event))
@@ -1376,6 +1434,11 @@ fn EconomicDashboard() -> impl IntoView {
                                                     </button>
                                                 </div>
                                                 <p class="economic-form-help">
+                                                    {if indicator.quarterly {
+                                                        "Datez la donnée au premier jour du trimestre. "
+                                                    } else {
+                                                        "Datez la donnée au premier jour du mois. "
+                                                    }}
                                                     "Une date déjà présente sera remplacée pour permettre de corriger une révision."
                                                 </p>
                                                 <p class="economic-form-status" role="status">{move || save_status.get()}</p>
@@ -1386,7 +1449,7 @@ fn EconomicDashboard() -> impl IntoView {
                             }
                             None => view! {
                                 <p class="cot-state cot-state-error" role="alert">
-                                    "Indicateur USD inconnu."
+                                    "Indicateur inconnu pour cette devise."
                                 </p>
                             }.into_any(),
                         }
@@ -1397,25 +1460,360 @@ fn EconomicDashboard() -> impl IntoView {
     }
 }
 
-fn economic_indicator(id: &str) -> Option<EconomicIndicator> {
-    ECONOMIC_INDICATORS
-        .iter()
-        .find(|indicator| indicator.id == id)
-        .copied()
+fn economic_indicators(currency_code: &str) -> Vec<EconomicIndicator> {
+    let ids: &[&str] = match currency_code {
+        "USD" => return ECONOMIC_INDICATORS.to_vec(),
+        "EUR" => &[
+            "policy_rate",
+            "hicp_headline_yoy",
+            "hicp_core_yoy",
+            "ppi_yoy",
+            "unemployment_rate",
+            "gdp_qoq",
+            "gdp_yoy",
+            "sp_global_manufacturing_pmi",
+            "sp_global_services_pmi",
+        ],
+        "GBP" | "JPY" => &[
+            "policy_rate",
+            "cpi_headline_yoy",
+            "cpi_core_yoy",
+            "ppi_yoy",
+            "unemployment_rate",
+            "gdp_qoq",
+            "gdp_yoy",
+            "sp_global_manufacturing_pmi",
+            "sp_global_services_pmi",
+        ],
+        "CHF" => &[
+            "policy_rate",
+            "cpi_headline_yoy",
+            "cpi_core_yoy",
+            "ppi_yoy",
+            "unemployment_rate",
+            "gdp_qoq",
+            "gdp_yoy",
+        ],
+        "CAD" => &[
+            "policy_rate",
+            "cpi_common",
+            "cpi_median_yoy",
+            "cpi_trimmed_yoy",
+            "ppi_yoy",
+            "unemployment_rate",
+            "gdp_qoq",
+            "gdp_yoy",
+            "sp_global_manufacturing_pmi",
+            "sp_global_services_pmi",
+        ],
+        "AUD" => &[
+            "policy_rate",
+            "cpi_trimmed_yoy",
+            "cpi_weighted_median_yoy",
+            "ppi_yoy",
+            "unemployment_rate",
+            "gdp_qoq",
+            "gdp_yoy",
+            "sp_global_manufacturing_pmi",
+            "sp_global_services_pmi",
+        ],
+        "NZD" => &[
+            "policy_rate",
+            "cpi_headline_yoy",
+            "cpi_core_proxy_yoy",
+            "ppi_yoy",
+            "unemployment_rate",
+            "gdp_qoq",
+            "gdp_yoy",
+        ],
+        "CNY" => &[
+            "policy_rate",
+            "cpi_headline_yoy",
+            "cpi_core_yoy",
+            "ppi_yoy",
+            "unemployment_rate",
+            "gdp_qoq",
+            "gdp_yoy",
+            "ratingdog_manufacturing_pmi",
+            "ratingdog_services_pmi",
+        ],
+        _ => return Vec::new(),
+    };
+    ids.iter()
+        .filter_map(|id| economic_indicator(currency_code, id))
+        .collect()
+}
+
+fn economic_indicator(currency_code: &str, id: &str) -> Option<EconomicIndicator> {
+    if currency_code == "USD" {
+        return ECONOMIC_INDICATORS
+            .iter()
+            .find(|indicator| indicator.id == id)
+            .copied();
+    }
+
+    let title = match id {
+        "policy_rate" => "Taux directeur",
+        "hicp_headline_yoy" => "Inflation HICP harmonisée · globale",
+        "hicp_core_yoy" => "Inflation HICP harmonisée · sous-jacente",
+        "cpi_headline_yoy" => "Inflation CPI · globale",
+        "cpi_core_yoy" => "Inflation CPI · sous-jacente",
+        "cpi_common" => "Inflation CPI commune",
+        "cpi_median_yoy" => "Inflation CPI médiane",
+        "cpi_trimmed_yoy" if currency_code == "AUD" => "Inflation CPI trimmed mean",
+        "cpi_trimmed_yoy" => "Inflation CPI tronquée",
+        "cpi_weighted_median_yoy" => "Inflation CPI weighted median",
+        "cpi_core_proxy_yoy" => "Inflation CPI · proxy sous-jacent",
+        "ppi_yoy" => "Inflation PPI",
+        "unemployment_rate" => "Taux de chômage",
+        "gdp_qoq" => "PIB réel · croissance trimestrielle",
+        "gdp_yoy" => "PIB réel · croissance annuelle",
+        "sp_global_manufacturing_pmi" => "PMI manufacturier S&P Global",
+        "sp_global_services_pmi" => "PMI services S&P Global",
+        "ratingdog_manufacturing_pmi" => "PMI manufacturier RatingDog",
+        "ratingdog_services_pmi" => "PMI services RatingDog",
+        _ => return None,
+    };
+    let (source_name, source_url) = economic_source(currency_code, id)?;
+    let quarterly = matches!(id, "gdp_qoq" | "gdp_yoy")
+        || (currency_code == "AUD"
+            && matches!(
+                id,
+                "cpi_trimmed_yoy" | "cpi_weighted_median_yoy" | "ppi_yoy"
+            ))
+        || (currency_code == "CHF" && id == "unemployment_rate")
+        || (currency_code == "NZD"
+            && matches!(
+                id,
+                "cpi_headline_yoy" | "cpi_core_proxy_yoy" | "ppi_yoy" | "unemployment_rate"
+            ));
+    let unit = match id {
+        "policy_rate" | "unemployment_rate" => "%",
+        "gdp_qoq" => "% QoQ",
+        "gdp_yoy" => "% YoY",
+        value if value.ends_with("_pmi") || value.ends_with("_services_pmi") => "indice",
+        _ => "% sur 12 mois",
+    };
+    let primary_label = match id {
+        "policy_rate" => "Taux directeur",
+        "hicp_headline_yoy" | "cpi_headline_yoy" => "Inflation globale",
+        "hicp_core_yoy" | "cpi_core_yoy" => "Inflation sous-jacente",
+        "cpi_common" => "CPI common",
+        "cpi_median_yoy" => "CPI median",
+        "cpi_trimmed_yoy" => "CPI trimmed mean",
+        "cpi_weighted_median_yoy" => "CPI weighted median",
+        "cpi_core_proxy_yoy" => "Proxy sous-jacent",
+        "ppi_yoy" => "PPI",
+        "unemployment_rate" => "Chômage",
+        "gdp_qoq" => "Croissance QoQ",
+        "gdp_yoy" => "Croissance YoY",
+        "sp_global_manufacturing_pmi" | "ratingdog_manufacturing_pmi" => "PMI",
+        _ => "PMI services",
+    };
+    let note = match (currency_code, id) {
+        ("EUR", "hicp_headline_yoy" | "hicp_core_yoy") => {
+            "Indice des prix à la consommation harmonisé (IPCH/HICP) de la zone euro; mesures harmonisées et comparables entre pays."
+        }
+        ("CHF", "cpi_headline_yoy" | "cpi_core_yoy") => {
+            "IPC national suisse (LIK), et non HICP. La mesure sous-jacente suit la définition publiée par l’Office fédéral de la statistique."
+        }
+        ("CAD", "cpi_common") => {
+            "Mesure CPI-common de la Banque du Canada; mesure de tendance sous-jacente distincte des CPI trimmed et median."
+        }
+        ("CAD", "cpi_trimmed_yoy") => {
+            "CPI-trim de la Banque du Canada; mesure sous-jacente qui réduit l’influence des variations extrêmes."
+        }
+        ("CAD", "cpi_median_yoy") => {
+            "CPI-median de la Banque du Canada; variation de prix pondérée au 50e percentile."
+        }
+        ("AUD", "cpi_trimmed_yoy") => {
+            "Trimmed mean CPI publiée par l’ABS. Publication trimestrielle; les dates suivent le premier jour du trimestre."
+        }
+        ("AUD", "cpi_weighted_median_yoy") => {
+            "Weighted median CPI publiée par l’ABS. Publication trimestrielle; les dates suivent le premier jour du trimestre."
+        }
+        ("NZD", "cpi_core_proxy_yoy") => {
+            "Proxy construit à partir de la mesure de prix sous-jacente documentée dans les données; ce n’est pas une série officielle intitulée « core CPI »."
+        }
+        ("CNY", "ratingdog_manufacturing_pmi" | "ratingdog_services_pmi") => {
+            "PMI final publié par S&P Global sous la marque RatingDog (anciennement Caixin) depuis août 2025. Au-dessus de 50, l’activité est généralement en expansion."
+        }
+        (_, "policy_rate") => {
+            "Taux directeur en vigueur au premier jour du mois; aucune observation quotidienne n’est nécessaire pour l’historique mensuel."
+        }
+        (_, "gdp_qoq") => {
+            "Variation trimestrielle du PIB réel par rapport au trimestre précédent, non annualisée. Date = premier jour du trimestre."
+        }
+        (_, "gdp_yoy") => {
+            "Variation du PIB réel sur un an. Date = premier jour du trimestre."
+        }
+        (_, "unemployment_rate") if quarterly => {
+            "Taux de chômage publié trimestriellement; date = premier jour du trimestre."
+        }
+        (_, "unemployment_rate") => "Taux de chômage publié mensuellement.",
+        (_, value) if value.ends_with("_pmi") || value.ends_with("_services_pmi") => {
+            "Indice PMI final mensuel publié par S&P Global. Au-dessus de 50, l’activité est généralement en expansion; les périodes absentes ne sont pas estimées."
+        }
+        (_, "ppi_yoy") if quarterly => {
+            "Variation annuelle de l’indice des prix à la production, publiée trimestriellement; date = premier jour du trimestre."
+        }
+        (_, "ppi_yoy") => "Variation annuelle des prix à la production.",
+        _ => "Variation annuelle des prix à la consommation.",
+    };
+    let indicator_id = match id {
+        "policy_rate" => "policy_rate",
+        "hicp_headline_yoy" => "hicp_headline_yoy",
+        "hicp_core_yoy" => "hicp_core_yoy",
+        "cpi_headline_yoy" => "cpi_headline_yoy",
+        "cpi_core_yoy" => "cpi_core_yoy",
+        "cpi_common" => "cpi_common",
+        "cpi_median_yoy" => "cpi_median_yoy",
+        "cpi_trimmed_yoy" => "cpi_trimmed_yoy",
+        "cpi_weighted_median_yoy" => "cpi_weighted_median_yoy",
+        "cpi_core_proxy_yoy" => "cpi_core_proxy_yoy",
+        "ppi_yoy" => "ppi_yoy",
+        "unemployment_rate" => "unemployment_rate",
+        "gdp_qoq" => "gdp_qoq",
+        "gdp_yoy" => "gdp_yoy",
+        "sp_global_manufacturing_pmi" => "sp_global_manufacturing_pmi",
+        "sp_global_services_pmi" => "sp_global_services_pmi",
+        "ratingdog_manufacturing_pmi" => "ratingdog_manufacturing_pmi",
+        "ratingdog_services_pmi" => "ratingdog_services_pmi",
+        _ => return None,
+    };
+    Some(EconomicIndicator {
+        id: indicator_id,
+        title,
+        unit,
+        decimals: if id == "policy_rate" { 2 } else { 1 },
+        source_name,
+        source_url,
+        note,
+        primary_label,
+        secondary_label: None,
+        quarterly,
+    })
+}
+
+fn economic_source(currency_code: &str, id: &str) -> Option<(&'static str, &'static str)> {
+    if id.ends_with("_pmi") || id.ends_with("_services_pmi") {
+        return Some(if currency_code == "CNY" {
+            (
+                "S&P Global · RatingDog",
+                "https://www.pmi.spglobal.com/Public/Release/PressReleases",
+            )
+        } else {
+            (
+                "S&P Global",
+                "https://www.pmi.spglobal.com/Public/Release/PressReleases",
+            )
+        });
+    }
+    Some(match currency_code {
+        "EUR" if id == "policy_rate" => (
+            "Banque centrale européenne",
+            "https://www.ecb.europa.eu/stats/policy_and_exchange_rates/key_ecb_interest_rates/html/index.en.html",
+        ),
+        "EUR" => (
+            "Eurostat",
+            "https://ec.europa.eu/eurostat/web/main/data/database",
+        ),
+        "GBP" if id == "policy_rate" => (
+            "Bank of England",
+            "https://www.bankofengland.co.uk/boeapps/database/Bank-Rate.asp",
+        ),
+        "GBP" => (
+            "Office for National Statistics",
+            "https://www.ons.gov.uk/economy",
+        ),
+        "JPY" if id == "policy_rate" => (
+            "Bank of Japan",
+            "https://www.boj.or.jp/en/mopo/mpmdeci/index.htm",
+        ),
+        "JPY" if id == "ppi_yoy" => (
+            "Bank of Japan",
+            "https://www.boj.or.jp/en/statistics/pi/index.htm",
+        ),
+        "JPY" if id == "gdp_qoq" || id == "gdp_yoy" => (
+            "Cabinet Office of Japan",
+            "https://www.esri.cao.go.jp/en/sna/menu.html",
+        ),
+        "JPY" => (
+            "Statistics Bureau of Japan",
+            "https://www.stat.go.jp/english/data/index.html",
+        ),
+        "CHF" if id == "policy_rate" => (
+            "Banque nationale suisse",
+            "https://www.snb.ch/en/the-snb/mandates-goals/monetary-policy",
+        ),
+        "CHF" if id == "gdp_qoq" || id == "gdp_yoy" => (
+            "SECO",
+            "https://www.seco.admin.ch/seco/en/home/wirtschaftslage---wirtschaftspolitik/Wirtschaftslage/bip-quartalsschaetzungen-.html",
+        ),
+        "CHF" if id == "ppi_yoy" => (
+            "Eurostat · source primaire OFS",
+            "https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/sts_inpp_m?format=JSON&lang=EN&geo=CH&nace_r2=B-D&s_adj=NSA&unit=PCH_SM&sinceTimePeriod=2023-11",
+        ),
+        "CHF" if id == "unemployment_rate" => (
+            "OFS / OECD via FRED",
+            "https://fred.stlouisfed.org/graph/fredgraph.csv?id=LRHUTTTTCHQ156S",
+        ),
+        "CHF" => (
+            "Office fédéral de la statistique",
+            "https://www.bfs.admin.ch/bfs/en/home/statistics/prices/consumer-price-index.html",
+        ),
+        "CAD" if id == "policy_rate" => (
+            "Banque du Canada",
+            "https://www.bankofcanada.ca/core-functions/monetary-policy/key-interest-rate/",
+        ),
+        "CAD" if id.starts_with("cpi_") => (
+            "Banque du Canada",
+            "https://www.bankofcanada.ca/rates/price-indexes/cpi/",
+        ),
+        "CAD" => (
+            "Statistique Canada",
+            "https://www.statcan.gc.ca/en/subjects-start/prices_and_price_indexes",
+        ),
+        "AUD" if id == "policy_rate" => (
+            "Reserve Bank of Australia",
+            "https://www.rba.gov.au/statistics/cash-rate/",
+        ),
+        "AUD" if id.starts_with("cpi_") => (
+            "Reserve Bank of Australia",
+            "https://www.rba.gov.au/statistics/tables/",
+        ),
+        "AUD" => (
+            "Australian Bureau of Statistics",
+            "https://www.abs.gov.au/statistics",
+        ),
+        "NZD" if id == "policy_rate" => (
+            "Reserve Bank of New Zealand",
+            "https://www.rbnz.govt.nz/monetary-policy/about-monetary-policy",
+        ),
+        "NZD" => (
+            "Stats NZ",
+            "https://www.stats.govt.nz/topics/economy/",
+        ),
+        "CNY" if id == "policy_rate" => (
+            "People’s Bank of China",
+            "http://www.pbc.gov.cn/en/3688229/3688335/index.html",
+        ),
+        "CNY" => (
+            "National Bureau of Statistics of China",
+            "https://www.stats.gov.cn/english/",
+        ),
+        _ => return None,
+    })
 }
 
 fn economic_observation_label(
     indicator: EconomicIndicator,
     observation: &EconomicObservation,
 ) -> String {
-    let primary = format_economic_value(observation.value, indicator.unit);
+    let primary = format_economic_value(observation.value, indicator);
     match (indicator.id, observation.value_secondary) {
         ("fed_target_range", Some(upper)) => {
-            format!(
-                "{}–{}",
-                primary,
-                format_economic_value(upper, indicator.unit)
-            )
+            format!("{}–{}", primary, format_economic_value(upper, indicator))
         }
         ("pce_inflation", _) => primary,
         _ => primary,
@@ -1426,35 +1824,37 @@ fn economic_observation_meta(
     indicator: EconomicIndicator,
     observation: &EconomicObservation,
 ) -> String {
-    let date = format!("Dernière donnée · {}", format_date(&observation.date));
+    let date = format!(
+        "Dernière donnée · {}",
+        economic_period_label(indicator, &observation.date)
+    );
     match (indicator.id, observation.value_secondary) {
         ("fed_target_range", _) => format!("Fourchette cible · {date}"),
-        ("pce_inflation", Some(secondary)) => format!(
-            "PCE sous-jacent {} · {date}",
-            format_economic_value(secondary, indicator.unit)
+        (_, Some(secondary)) => format!(
+            "{} {} · {date}",
+            indicator.secondary_label.unwrap_or("Valeur secondaire"),
+            format_economic_value(secondary, indicator)
         ),
         _ => date,
     }
 }
 
-fn format_economic_value(value: f64, unit: &str) -> String {
-    let number = if unit == "milliers" {
-        let digits = format!("{value:.0}");
-        let mut grouped = String::new();
-        for (index, digit) in digits.chars().rev().enumerate() {
-            if index > 0 && index % 3 == 0 {
-                grouped.push(' ');
-            }
-            grouped.push(digit);
-        }
-        grouped.chars().rev().collect()
-    } else {
-        format!("{value:.2}")
+fn format_economic_value(value: f64, indicator: EconomicIndicator) -> String {
+    let number = if indicator.id == "nonfarm_payrolls" {
+        format!("{value:.0}")
+    } else if indicator.id == "fed_target_range" {
+        format!("{value:.precision$}", precision = indicator.decimals)
             .trim_end_matches('0')
             .trim_end_matches('.')
             .replace('.', ",")
+    } else {
+        format!("{value:.precision$}", precision = indicator.decimals).replace('.', ",")
     };
-    format!("{number} {unit}")
+    if indicator.id == "nonfarm_payrolls" {
+        format!("{number}K")
+    } else {
+        format!("{number} {}", indicator.unit)
+    }
 }
 
 fn render_economic_chart(
@@ -1466,7 +1866,7 @@ fn render_economic_chart(
     let Some(latest) = observations.last() else {
         return String::new();
     };
-    let cutoff = month_index(&latest.date) - (i32::from(years) * 12 - 1);
+    let cutoff = month_index(&latest.date) - i32::from(years) * 12;
     let visible = observations
         .iter()
         .filter(|row| month_index(&row.date) >= cutoff)
@@ -1512,7 +1912,11 @@ fn render_economic_chart(
         svg.push_str(&format!(
             r##"<line x1="{LEFT}" y1="{y_position:.1}" x2="{RIGHT}" y2="{y_position:.1}" stroke="#26332b"/><text x="54" y="{:.1}" text-anchor="end" fill="#91a196" font-size="11">{}</text>"##,
             y_position + 4.0,
-            format!("{value:.1}").replace('.', ",")
+            format!(
+                "{value:.precision$}",
+                precision = indicator.decimals
+            )
+            .replace('.', ",")
         ));
     }
 
@@ -1539,9 +1943,10 @@ fn render_economic_chart(
                         "#56cfe1"
                     };
                     svg.push_str(&format!(
-                        r##"<rect x="{:.1}" y="{top:.1}" width="{bar_width:.1}" height="{height:.1}" rx="2" fill="{color}"><title>{} · {value:.2}</title></rect>"##,
+                        r##"<rect x="{:.1}" y="{top:.1}" width="{bar_width:.1}" height="{height:.1}" rx="2" fill="{color}"><title>{} · {}</title></rect>"##,
                         center + offset - bar_width / 2.0,
-                        row.date
+                        row.date,
+                        format_economic_value(value, indicator)
                     ));
                 }
             }
@@ -1569,10 +1974,19 @@ fn render_economic_chart(
             let path = points
                 .iter()
                 .enumerate()
-                .map(|(point_index, (index, _, value))| {
+                .map(|(point_index, (index, row, value))| {
+                    let has_gap = point_index > 0
+                        && points.get(point_index - 1).is_some_and(|(_, previous, _)| {
+                            month_index(&row.date) - month_index(&previous.date)
+                                > if indicator.quarterly { 3 } else { 1 }
+                        });
                     format!(
                         "{} {:.1},{:.1}",
-                        if point_index == 0 { "M" } else { "L" },
+                        if point_index == 0 || has_gap {
+                            "M"
+                        } else {
+                            "L"
+                        },
                         x(*index),
                         y(*value)
                     )
@@ -1584,10 +1998,11 @@ fn render_economic_chart(
             ));
             for (index, row, value) in points {
                 svg.push_str(&format!(
-                    r##"<circle cx="{:.1}" cy="{:.1}" r="3" fill="{color}"><title>{} · {value:.2}</title></circle>"##,
+                    r##"<circle cx="{:.1}" cy="{:.1}" r="3" fill="{color}"><title>{} · {}</title></circle>"##,
                     x(index),
                     y(value),
-                    row.date
+                    row.date,
+                    format_economic_value(value, indicator)
                 ));
             }
         }
@@ -1596,11 +2011,24 @@ fn render_economic_chart(
     let label_step = (visible.len() / 5).max(1);
     for (index, row) in visible.iter().enumerate() {
         if index % label_step == 0 || index + 1 == visible.len() {
+            let label = if indicator.quarterly {
+                let quarter = row
+                    .date
+                    .get(5..7)
+                    .and_then(|month| month.parse::<u8>().ok())
+                    .map(|month| (month - 1) / 3 + 1)
+                    .unwrap_or_default();
+                format!("T{quarter}/{}", row.date.get(2..4).unwrap_or(""))
+            } else {
+                format!(
+                    "{}/{}",
+                    row.date.get(5..7).unwrap_or(""),
+                    row.date.get(2..4).unwrap_or("")
+                )
+            };
             svg.push_str(&format!(
-                r##"<text x="{:.1}" y="286" text-anchor="middle" fill="#91a196" font-size="10">{}/{}</text>"##,
-                x(index),
-                row.date.get(5..7).unwrap_or(""),
-                row.date.get(2..4).unwrap_or("")
+                r##"<text x="{:.1}" y="286" text-anchor="middle" fill="#91a196" font-size="10">{label}</text>"##,
+                x(index)
             ));
         }
     }
@@ -1631,6 +2059,20 @@ fn month_index(date: &str) -> i32 {
         .and_then(|part| part.parse::<i32>().ok())
         .unwrap_or(1);
     year * 12 + month - 1
+}
+
+fn economic_period_label(indicator: EconomicIndicator, date: &str) -> String {
+    if indicator.quarterly {
+        let year = date.get(0..4).unwrap_or("");
+        let quarter = date
+            .get(5..7)
+            .and_then(|month| month.parse::<u8>().ok())
+            .map(|month| (month - 1) / 3 + 1);
+        if let Some(quarter) = quarter {
+            return format!("T{quarter} {year}");
+        }
+    }
+    format_date(date)
 }
 
 fn format_date(timestamp: &str) -> String {
@@ -1709,11 +2151,15 @@ async fn fetch_cot_manifest() -> Result<Vec<CotChartAsset>, String> {
         .map_err(|error| error.to_string())
 }
 
-async fn fetch_economic_observations() -> Result<Vec<EconomicObservation>, String> {
-    let response = Request::get(&format!("{API_BASE}/api/economic/usd/observations"))
-        .send()
-        .await
-        .map_err(|error| error.to_string())?;
+async fn fetch_economic_observations(
+    currency_code: &str,
+) -> Result<Vec<EconomicObservation>, String> {
+    let response = Request::get(&format!(
+        "{API_BASE}/api/economic/{currency_code}/observations"
+    ))
+    .send()
+    .await
+    .map_err(|error| error.to_string())?;
 
     if !response.ok() {
         return Err(format!("API returned HTTP {}", response.status()));
@@ -1726,11 +2172,12 @@ async fn fetch_economic_observations() -> Result<Vec<EconomicObservation>, Strin
 }
 
 async fn add_economic_observation(
+    currency_code: &str,
     series_id: &str,
     draft: EconomicObservationDraft,
 ) -> Result<EconomicObservation, String> {
     let response = Request::post(&format!(
-        "{API_BASE}/api/economic/usd/observations/{series_id}"
+        "{API_BASE}/api/economic/{currency_code}/observations/{series_id}"
     ))
     .json(&draft)
     .map_err(|error| error.to_string())?
@@ -1804,4 +2251,98 @@ fn render_markdown(source: &str) -> String {
     html::push_html(&mut unsafe_html, parser);
 
     ammonia::clean(&unsafe_html)
+}
+
+#[cfg(test)]
+mod economic_dashboard_tests {
+    use super::*;
+
+    fn indicator<'a>(indicators: &'a [EconomicIndicator], id: &str) -> &'a EconomicIndicator {
+        indicators
+            .iter()
+            .find(|indicator| indicator.id == id)
+            .unwrap_or_else(|| panic!("missing indicator {id}"))
+    }
+
+    #[test]
+    fn country_specific_inflation_measures_and_pmi_sources_are_preserved() {
+        let cad = economic_indicators("CAD");
+        assert!(cad.iter().any(|item| item.id == "cpi_common"));
+        assert!(cad.iter().any(|item| item.id == "cpi_trimmed_yoy"));
+        assert!(cad.iter().any(|item| item.id == "cpi_median_yoy"));
+
+        let aud = economic_indicators("AUD");
+        assert!(indicator(&aud, "cpi_trimmed_yoy").quarterly);
+        assert!(indicator(&aud, "cpi_weighted_median_yoy").quarterly);
+        assert_eq!(
+            indicator(&aud, "cpi_trimmed_yoy").source_name,
+            "Reserve Bank of Australia"
+        );
+
+        let eur = economic_indicators("EUR");
+        assert!(eur.iter().any(|item| item.id == "hicp_headline_yoy"));
+        assert!(eur.iter().any(|item| item.id == "hicp_core_yoy"));
+        assert!(!eur.iter().any(|item| item.id.starts_with("cpi_")));
+
+        let cny = economic_indicators("CNY");
+        assert!(cny
+            .iter()
+            .any(|item| item.id == "ratingdog_manufacturing_pmi"));
+        assert!(!cny.iter().any(|item| item.id.starts_with("sp_global_")));
+
+        for currency in ["EUR", "GBP", "JPY", "CHF", "CAD", "AUD", "NZD", "CNY"] {
+            assert!(!economic_indicators(currency).is_empty(), "{currency}");
+            assert!(!economic_indicators(currency)
+                .iter()
+                .any(|item| item.id.contains("pce")));
+        }
+        for currency in ["CHF", "NZD"] {
+            assert!(!economic_indicators(currency)
+                .iter()
+                .any(|item| item.id.starts_with("sp_global_")));
+        }
+    }
+
+    #[test]
+    fn quarterly_observations_use_quarter_labels() {
+        let eur = economic_indicators("EUR");
+        let gdp = indicator(&eur, "gdp_qoq");
+        assert_eq!(economic_period_label(*gdp, "2026-07-01"), "T3 2026");
+
+        let aud = economic_indicators("AUD");
+        let cpi = indicator(&aud, "cpi_trimmed_yoy");
+        assert_eq!(economic_period_label(*cpi, "2026-07-01"), "T3 2026");
+    }
+
+    #[test]
+    fn line_charts_break_at_missing_publication_periods() {
+        let pmi = economic_indicator("EUR", "sp_global_services_pmi").unwrap();
+        let gap = [
+            EconomicObservation {
+                series_id: pmi.id.to_string(),
+                date: "2026-08-01".to_string(),
+                value: 51.0,
+                value_secondary: None,
+            },
+            EconomicObservation {
+                series_id: pmi.id.to_string(),
+                date: "2026-10-01".to_string(),
+                value: 52.0,
+                value_secondary: None,
+            },
+        ];
+        let gap_chart = render_economic_chart(&gap, 3, "line", pmi);
+        assert!(!gap_chart.contains(" L "));
+
+        let adjacent = [
+            gap[0].clone(),
+            EconomicObservation {
+                date: "2026-09-01".to_string(),
+                value: 51.5,
+                ..gap[1].clone()
+            },
+        ];
+        let adjacent_chart = render_economic_chart(&adjacent, 3, "line", pmi);
+        assert!(adjacent_chart.contains(" L "));
+    }
 }
