@@ -354,7 +354,7 @@ fn validate_records(records: &[EconomicRecord], currency: &str) -> Vec<String> {
             }
             monthly_dates.insert(&record.date);
         } else if quarterly_series.contains(record.series_id.as_str()) {
-            if !['1', '4', '7', '10'].contains(&day.chars().next().unwrap()) {
+            if !["01", "04", "07", "10"].contains(&day) {
                 errors.push(format!(
                     "{}: Quarterly series '{}' has date '{}' (expected YYYY-01-01, YYYY-04-01, etc.)",
                     currency, record.series_id, record.date
@@ -364,13 +364,13 @@ fn validate_records(records: &[EconomicRecord], currency: &str) -> Vec<String> {
         }
 
         // Track seen series
-        seen_series.insert(&record.series_id);
+        seen_series.insert(record.series_id.as_str());
     }
 
     // Check for missing series
     let expected_series = get_expected_series(currency);
     for series in &expected_series {
-        if !seen_series.contains(series) {
+        if !seen_series.contains(*series) {
             errors.push(format!(
                 "{}: Missing expected series '{}'", currency, series
             ));
@@ -543,7 +543,7 @@ fn generate_summary(data_dir: &Path, output: &Path) -> Result<()> {
         };
 
         let expected_series = get_expected_series(currency);
-        let mut series_stats = HashMap::new();
+        let mut series_stats: HashMap<&str, (Vec<String>, Vec<String>)> = HashMap::new();
         let mut monthly_dates = HashSet::new();
         let mut quarterly_dates = HashSet::new();
         
@@ -567,7 +567,7 @@ fn generate_summary(data_dir: &Path, output: &Path) -> Result<()> {
                 quarterly_dates.insert(&record.date);
             }
             
-            let entry = series_stats.entry(&record.series_id).or_insert_with(|| {
+            let entry = series_stats.entry(record.series_id.as_str()).or_insert_with(|| {
                 (Vec::new(), Vec::new())
             });
             entry.0.push(record.date.clone());
@@ -596,7 +596,7 @@ fn generate_summary(data_dir: &Path, output: &Path) -> Result<()> {
         summary.push_str("|-------|--------------|---------------|---------------|-----------|--------|\n");
         
         for series in &expected_series {
-            if let Some((dates, _)) = series_stats.get(series) {
+            if let Some((dates, _)) = series_stats.get(*series) {
                 let count = dates.len();
                 let first = dates.first().cloned().unwrap_or_default();
                 let last = dates.last().cloned().unwrap_or_default();
