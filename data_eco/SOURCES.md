@@ -131,8 +131,9 @@ totale.
 | `gdp_yoy` | YoY calculé par capitalisation des 4 taux trimestriels (FRED NAEXKP01CAQ657S) | https://fred.stlouisfed.org/graph/fredgraph.csv?id=NAEXKP01CAQ657S | 11 obs (trimestriel), 2023-10 → 2026-04 |
 | `sp_global_manufacturing_pmi` | S&P Global PMI — Canada Manufacturing (communiqués) | https://www.pmi.spglobal.com/Public/Release/PressReleases | 2 obs (mensuel), 2026-09 → 2026-10 |
 | `sp_global_services_pmi` | S&P Global PMI — Canada Services (communiqués) | https://www.pmi.spglobal.com/Public/Release/PressReleases | 3 obs (mensuel), 2026-08 → 2026-10 |
+| `ppi_yoy` | Statistics Canada — IPPI total, variation annuelle, non désaisonnalisée ; 2026-09 = +14,5 % (The Daily, 22/10/2026). Historique mensuel non reconstitué dans ce CSV. | https://www150.statcan.gc.ca/n1/daily-quotidien/261022/dq261022a-eng.htm ; tableau 18-10-0265-02 : https://www150.statcan.gc.ca/t1/tbl1/en/tv.action?pid=1810026502 | 1 obs (mensuel), 2026-09 |
 
-*`ppi_yoy` (IPPI) : **non disponible** — StatCan injoignable depuis cet environnement (timeout réseau). Dernière valeur connue : sept. 2026 = +14,5 % an/an (The Daily du 22/10/2026, www150.statcan.gc.ca/n1/daily-quotidien/261022/dq261022a-eng.htm).*
+*`ppi_yoy` (IPPI) : **historique partiel** — le point officiel de septembre 2026 (+14,5 % an/an) a été ajouté. Les 35 autres mois de la fenêtre n'ont pas été importés ; ils restent manquants et ne sont pas estimés.*
 
 ## AUD — Australie
 
@@ -166,7 +167,7 @@ totale.
 
 | Série | Définition / institution | URL | Couverture |
 |---|---|---|---|
-| `policy_rate` | PBOC — taux de prise en pension inversée à 7 jours (principal taux directeur de la fenêtre), taux au 1ᵉʳ jour du mois — ajouté en 2ᵉ passe depuis les annonces officielles | https://www.stats.gov.cn/sj/zxfb/ | 36 obs (mensuel), 2023-11 → 2026-10 |
+| `policy_rate` | PBOC — taux de prise en pension inversée à 7 jours, taux en vigueur au 1ᵉʳ jour du mois ; série reconstituée à partir des annonces de taux de la banque centrale relayées par le Conseil des affaires d'État (Xinhua) | [22/07/2024](https://english.www.gov.cn/news/202407/22/content_WS669dc04ec6d0868f4e8e9543.html) ; [27/09/2024](https://english.www.gov.cn/news/202409/27/content_WS66f618efc6d0868f4e8eb514.html) ; [07/05/2025](https://english.www.gov.cn/news/202505/07/content_WS681af03ec6d0868f4e8f250c.html) | 36 obs (mensuel), 2023-11 → 2026-10 |
 | `cpi_headline_yoy` | NBS — communiqués mensuels « 居民消费价格 » : CPI YoY, % (titre ou corps du communiqué) | https://www.stats.gov.cn/sj/zxfb/ | 35 obs (mensuel), 2023-11 → 2026-09 |
 | `cpi_core_yoy` | NBS — CPI « 不包括食品和能源 » (hors alimentation et énergie), YoY, % (tableau du communiqué) | https://www.stats.gov.cn/sj/zxfb/ | 35 obs (mensuel), 2023-11 → 2026-09 |
 | `ppi_yoy` | NBS — communiqués mensuels « 工业生产者出厂价格 » : PPI YoY, % | https://www.stats.gov.cn/sj/zxfb/ | 35 obs (mensuel), 2023-11 → 2026-09 |
