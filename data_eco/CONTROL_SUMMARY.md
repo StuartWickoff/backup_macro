@@ -3,7 +3,7 @@
 Généré le **4 novembre 2026** (2ᵉ passe, après correction). Fenêtre cible : 2023-11 →
 2026-10 (36 mois) / 2023T4 → 2026T3 (12 trimestres). **Toutes les dates manquantes sont
 listées avec leur cause** (calendrier de publication au 04/11/2026 ou indisponibilité).
-Total : **1429 observations** (1 011 avant correction) sur 8 devises.
+Total : **1430 observations** (1 011 avant correction) sur 8 devises.
 Contrôle automatisé : exécuter `python3 audit.py` dans ce répertoire (rapport `AUDIT.md`).
 
 ## Corrections appliquées le 04/11/2026 (2ᵉ passe)
@@ -14,7 +14,7 @@ Contrôle automatisé : exécuter `python3 audit.py` dans ce répertoire (rappor
    pour GBP, JPY, CNY ; `cpi_trimmed_yoy`/`cpi_median_yoy` pour CAD ;
    `cpi_trimmed_yoy`/`cpi_weighted_median_yoy` pour AUD ;
    `cpi_headline_yoy`/`cpi_core_proxy_yoy` pour NZD) ; `real_gdp_growth` → `gdp_qoq` +
-   `gdp_yoy`. **`value_secondary` est vide sur les 1 429 lignes.**
+   `gdp_yoy`. **`value_secondary` est vide sur les 1 430 lignes.**
 2. **Dates trimestrielles corrigées** : 1ᵉʳ jour du trimestre (T1→01-01, T2→04-01,
    T3→07-01, T4→10-01) — 148 lignes re-datées (PIB, IPC/PPI trimestriels australiens et
    néo-zélandais, chômage trimestriel suisse et néo-zélandais).
@@ -47,6 +47,9 @@ Contrôle automatisé : exécuter `python3 audit.py` dans ce répertoire (rappor
 12. **Renommage** `caixin_*` → `ratingdog_*` (continuité Caixin → RatingDog documentée).
 13. **EA20/EA21 normalisé et documenté** (voir SOURCES.md) ; la double définition du PPI
     zone euro est levée (série EA21 intégrale).
+14. **PPI Canada : ajout d'un point officiel vérifié** — septembre 2026 = +14,5 % YoY
+    (Statistics Canada, The Daily du 22/10/2026). Les 35 autres mois ne sont pas importés :
+    la série demeure explicitement partielle, sans estimation ni interpolation.
 
 **P2 — traçabilité** : URLs directes par série, statuts flash/provisoires, liste exacte
 des dates manquantes (ci-dessous).
@@ -61,6 +64,7 @@ des dates manquantes (ci-dessous).
 | `hicp_core_yoy` | 36 | 2026-10 | — | complet |
 | `hicp_headline_yoy` | 36 | 2026-10 | — | complet |
 | `policy_rate` | 36 | 2026-10 | — | complet |
+| `ppi_yoy` | 1 | 2026-09 | 2023-11 → 2026-08 (35 mois) | seul le point septembre 2026 (+14,5 %) est vérifié et importé ; historique incomplet |
 | `ppi_yoy` | 34 | 2026-08 | 2026-09, 2026-10 | sept. : publication Eurostat du 04/11 non encore parvenue dans l'API lors de la 2ᵉ passe ; oct. : prévu début déc. 2026 |
 | `sp_global_manufacturing_pmi` | 2 | 2026-10 | 2023-11, 2023-12, 2024-01, 2024-02, 2024-03, 2024-04, 2024-05, 2024-06, 2024-07, 2024-08, 2024-09, 2024-10, 2024-11, 2024-12, 2025-01, 2025-02, 2025-03, 2025-04, 2025-05, 2025-06, 2025-07, 2025-08, 2025-09, 2025-10, 2025-11, 2025-12, 2026-01, 2026-02, 2026-03, 2026-04, 2026-05, 2026-06, 2026-07, 2026-08 | portail S&P Global ≈ 2 mois de communiqués ; Investing.com 403 → historique non reconstituable |
 | `sp_global_services_pmi` | 3 | 2026-10 | 2023-11, 2023-12, 2024-01, 2024-02, 2024-03, 2024-04, 2024-05, 2024-06, 2024-07, 2024-08, 2024-09, 2024-10, 2024-11, 2024-12, 2025-01, 2025-02, 2025-03, 2025-04, 2025-05, 2025-06, 2025-07, 2025-08, 2025-09, 2025-10, 2025-11, 2025-12, 2026-01, 2026-02, 2026-03, 2026-04, 2026-05, 2026-06, 2026-07 | idem manufacturing |
@@ -166,7 +170,7 @@ des dates manquantes (ci-dessous).
 |---|---|---|
 | CHF | PMI manufacturing (SVME/procure.ch) et PMI services | aucune source programmatique accessible (portail S&P Global sans communiqués suisses ; Investing.com 403). Dernières valeurs connues : manufacturing oct. 56,7 / sept. 55,3 (SVME 02/11/2026) |
 | NZD | PMI manufacturing et services (BNZ-BusinessNZ) | sites BusinessNZ / BNZ inaccessibles (HTTP 403) ; Investing.com 403 |
-| CAD | `ppi_yoy` (IPPI) | StatCan injoignable depuis cet environnement (timeout réseau) ; miroirs FRED/DBnomics/OECD sans équivalent. Dernière valeur connue : sept. 2026 = +14,5 % an/an (The Daily 22/10/2026) |
+| CAD | `ppi_yoy` (IPPI) | Partiel : septembre 2026 = +14,5 % vérifié et importé ; 35 autres mois non extraits. Source officielle : The Daily 22/10/2026 et tableau 18-10-0265-02. |
 | toutes | PMI — historique complet 36 mois | le portail S&P Global ne liste que ~2 mois de communiqués ; Investing.com (source prioritaire) inaccessible (HTTP 403) — couverture PMI limitée à 2-3 mois par série |
 
 ## Points de contrôle externes (vérifiés le 04/11/2026)
@@ -181,6 +185,7 @@ des dates manquantes (ci-dessous).
 | CHF IPC oct. 2026 | 1,5 (core 0,5) | OFS, communiqué du 03/11/2026 |
 | AUD taux directeur 1ᵉʳ oct. | 4,60 | RBA (relèvement à 4,85 % le 04/11, hors fenêtre) |
 | CAD chômage sept. 2026 | 6,5 | StatCan LFS 09/10/2026 |
+| CAD IPPI sept. 2026 | 14,5 | Statistics Canada, The Daily — Industrial product and raw materials price indexes, 22/10/2026 |
 | NZD chômage T3 2026 | 5,7 | Stats NZ LMS 04/11/2026 |
-| CNY taux PBOC oct. 2026 | 1,40 | PBOC (inchangé — Reuters 28/06/26, CEIC) |
+| CNY taux PBOC oct. 2026 | 1,40 | Changements de taux confirmés par les annonces relayées par Xinhua / gov.cn (22/07/2024, 27/09/2024, 07/05/2025) |
 
