@@ -5,10 +5,10 @@ Exécuté le 04/11/2026. Données collectées le 04/11/2026 (1ʳᵉ passe) et co
 ## Résultat global
 
 - **Échecs : 0**
-- Avertissements : 0
+- Avertissements : 17 (PMI avec moins de 12 observations, quatre séries CHF/NZD non collectées et PPI canadien partiel)
 - Contrôles : structure, schéma (value_secondary vide), dates (1ᵉʳ jour du mois/trimestre), unicité, fenêtre, inventaire des séries, plausibilité, points de contrôle externes, cohérence du journal de collecte.
 
-Total : **1429 observations** sur 8 devises.
+Total : **1430 observations** sur 8 devises.
 
 ## Points de contrôle externes
 
@@ -27,6 +27,7 @@ Total : **1429 observations** sur 8 devises.
 | CHF | `cpi_headline_yoy` | 2026-10-01 | 1.5 | 1.5 | OFS 03/11/2026 | OK |
 | AUD | `policy_rate` | 2026-10-01 | 4.6 | 4.6 | RBA (4,85 % le 04/11, hors fenêtre) | OK |
 | CAD | `unemployment_rate` | 2026-09-01 | 6.5 | 6.5 | StatCan LFS 09/10/2026 | OK |
+| CAD | `ppi_yoy` | 2026-09-01 | 14.5 | 14.5 | Statistics Canada, The Daily 22/10/2026 | OK |
 | NZD | `unemployment_rate` | 2026-07-01 | 5.7 | 5.7 | Stats NZ LMS 04/11/2026 | OK |
 | JPY | `sp_global_services_pmi` | 2026-08-01 | 52.5 | 52.5 | S&P Global (corrigé) | OK |
 | AUD | `sp_global_manufacturing_pmi` | 2026-10-01 | 49.6 | 49.6 | S&P Global 01/11/2026 | OK |
@@ -94,6 +95,7 @@ Total : **1429 observations** sur 8 devises.
 | `gdp_qoq` | 11 | 2026-04 | 2026-T3 |
 | `gdp_yoy` | 11 | 2026-04 | 2026-T3 |
 | `policy_rate` | 36 | 2026-10 | — |
+| `ppi_yoy` | 1 | 2026-09 | 2023-11, 2023-12, 2024-01, 2024-02, 2024-03, 2024-04, 2024-05, 2024-06, 2024-07, 2024-08, 2024-09, 2024-10, 2024-11, 2024-12, 2025-01, 2025-02, 2025-03, 2025-04, 2025-05, 2025-06, 2025-07, 2025-08, 2025-09, 2025-10, 2025-11, 2025-12, 2026-01, 2026-02, 2026-03, 2026-04, 2026-05, 2026-06, 2026-07, 2026-08, 2026-10 | historique partiel : seul septembre 2026 est vérifié et importé |
 | `sp_global_manufacturing_pmi` | 2 | 2026-10 | 2023-11, 2023-12, 2024-01, 2024-02, 2024-03, 2024-04, 2024-05, 2024-06, 2024-07, 2024-08, 2024-09, 2024-10, 2024-11, 2024-12, 2025-01, 2025-02, 2025-03, 2025-04, 2025-05, 2025-06, 2025-07, 2025-08, 2025-09, 2025-10, 2025-11, 2025-12, 2026-01, 2026-02, 2026-03, 2026-04, 2026-05, 2026-06, 2026-07, 2026-08 |
 | `sp_global_services_pmi` | 3 | 2026-10 | 2023-11, 2023-12, 2024-01, 2024-02, 2024-03, 2024-04, 2024-05, 2024-06, 2024-07, 2024-08, 2024-09, 2024-10, 2024-11, 2024-12, 2025-01, 2025-02, 2025-03, 2025-04, 2025-05, 2025-06, 2025-07, 2025-08, 2025-09, 2025-10, 2025-11, 2025-12, 2026-01, 2026-02, 2026-03, 2026-04, 2026-05, 2026-06, 2026-07 |
 | `unemployment_rate` | 35 | 2026-09 | 2026-10 |
