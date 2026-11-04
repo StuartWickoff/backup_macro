@@ -4,6 +4,7 @@
 //! (modules `config`, `storage`, `backup`), testable unitairement ; ce
 //! fichier se limite à l'assemblage : logging, persistance, routes, écoute.
 
+use std::collections::HashMap;
 use std::{env, path::PathBuf};
 
 use axum::{
@@ -234,6 +235,16 @@ async fn add_economic_observation(
         value: draft.value,
         value_secondary: draft.value_secondary,
     };
+    let latest_month = observations
+        .iter()
+        .filter(|row| row.series_id == observation.series_id)
+        .map(|row| economic_month_index(&row.date))
+        .max();
+    if latest_month.is_some_and(|latest| economic_month_index(&observation.date) < latest - 36) {
+        return Err(ApiFailure::bad_request(
+            "Only observations within the latest three years can be saved.",
+        ));
+    }
 
     if let Some(existing) = observations.iter_mut().find(|existing| {
         existing.series_id == observation.series_id && existing.date == observation.date
@@ -242,6 +253,7 @@ async fn add_economic_observation(
     } else {
         observations.push(observation.clone());
     }
+    retain_latest_three_years(&mut observations);
     observations.sort_by(|left, right| {
         left.series_id
             .cmp(&right.series_id)
@@ -281,6 +293,35 @@ async fn add_economic_observation(
         })?;
 
     Ok((StatusCode::CREATED, Json(observation)))
+}
+
+fn retain_latest_three_years(observations: &mut Vec<EconomicObservation>) {
+    let mut latest_by_series = HashMap::new();
+    for row in observations.iter() {
+        let month = economic_month_index(&row.date);
+        latest_by_series
+            .entry(row.series_id.clone())
+            .and_modify(|latest: &mut i32| *latest = (*latest).max(month))
+            .or_insert(month);
+    }
+    observations.retain(|row| {
+        latest_by_series
+            .get(&row.series_id)
+            .is_some_and(|latest| economic_month_index(&row.date) >= latest - 36)
+    });
+}
+
+fn economic_month_index(date: &str) -> i32 {
+    let mut parts = date.split('-');
+    let year = parts
+        .next()
+        .and_then(|part| part.parse::<i32>().ok())
+        .unwrap_or_default();
+    let month = parts
+        .next()
+        .and_then(|part| part.parse::<i32>().ok())
+        .unwrap_or_default();
+    year * 12 + month - 1
 }
 
 async fn read_economic_history(
@@ -976,6 +1017,83 @@ mod tests {
             let response = app.clone().oneshot(request).await.unwrap();
             assert_eq!(response.status(), StatusCode::BAD_REQUEST);
         }
+    }
+
+    #[tokio::test]
+    async fn economic_history_is_capped_at_three_years_per_indicator() {
+        let dir = tempfile::tempdir().unwrap();
+        let app = test_app(dir.path()).await;
+        std::fs::write(
+            dir.path().join("history.csv"),
+            concat!(
+                "series_id,date,value,value_secondary\n",
+                "unemployment_rate,2023-10-01,3.8,\n",
+                "unemployment_rate,2023-11-01,3.9,\n",
+                "unemployment_rate,2026-10-01,4.2,\n",
+            ),
+        )
+        .unwrap();
+
+        let response = app
+            .clone()
+            .oneshot(add_economic_observation_request(
+                "unemployment_rate",
+                "2026-11-01",
+                4.1,
+                None,
+            ))
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::CREATED);
+
+        let response = app
+            .oneshot(
+                Request::get("/api/economic/usd/observations")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let rows: serde_json::Value = serde_json::from_str(&body_string(response).await).unwrap();
+        let dates = rows
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|row| row["date"].as_str().unwrap())
+            .collect::<Vec<_>>();
+        assert_eq!(dates, ["2023-11-01", "2026-10-01", "2026-11-01"]);
+    }
+
+    #[tokio::test]
+    async fn economic_observation_older_than_retention_window_is_rejected() {
+        let dir = tempfile::tempdir().unwrap();
+        let app = test_app(dir.path()).await;
+        std::fs::write(
+            dir.path().join("history.csv"),
+            concat!(
+                "series_id,date,value,value_secondary\n",
+                "unemployment_rate,2026-11-01,4.1,\n",
+            ),
+        )
+        .unwrap();
+
+        let response = app
+            .oneshot(add_economic_observation_request(
+                "unemployment_rate",
+                "2023-10-01",
+                3.8,
+                None,
+            ))
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+        assert_eq!(
+            std::fs::read_to_string(dir.path().join("history.csv")).unwrap(),
+            concat!(
+                "series_id,date,value,value_secondary\n",
+                "unemployment_rate,2026-11-01,4.1,\n",
+            )
+        );
     }
 
     #[tokio::test]

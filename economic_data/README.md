@@ -17,7 +17,10 @@ Dans le dossier USD, chaque indicateur est une entrée compacte. Ouvrez-en une p
 
 La fiche écrit directement dans le CSV local. La date représente la période de
 l'observation (et pas nécessairement le jour de publication). Les valeurs doivent
-utiliser un point comme séparateur décimal. Les données restent sur cet appareil.
+utiliser un point comme séparateur décimal. Le CSV conserve au maximum trois ans par
+indicateur; les observations plus anciennes sont retirées quand une nouvelle donnée
+est enregistrée. Une saisie au-delà de cette fenêtre est refusée. Les données restent
+sur cet appareil.
 
 ## Format CSV
 
