@@ -256,7 +256,10 @@ def load_cleaned_data(currency):
     """Charge les données nettoyées pour une devise"""
     filepath = os.path.join(CLEANED_DIR, currency, "history_cleaned.csv")
     if not os.path.exists(filepath):
-        return []
+        raise FileNotFoundError(
+            f"Source nettoyée introuvable : {filepath}\n"
+            "Abandon : history.csv ne sera PAS écrasé par des données vides."
+        )
     
     data = []
     with open(filepath, 'r', encoding='utf-8') as f:
@@ -297,6 +300,24 @@ def add_missing_data(currency_data, currency):
 def save_final_data(currency, data):
     """Sauvegarde les données finales pour une devise"""
     output_file = os.path.join(OUTPUT_DIR, currency, "history.csv")
+
+    if not data:
+        raise RuntimeError(
+            f"Aucune donnée à écrire pour {currency} : {output_file} n'est "
+            "PAS écrasé par des données vides."
+        )
+
+    # Filet anti-régression : ne jamais livrer moins de lignes que l'existant
+    # (protège contre une source nettoyée incomplète/écrasée).
+    if os.path.exists(output_file):
+        with open(output_file, 'r', encoding='utf-8') as existing_file:
+            existing_rows = sum(1 for _ in existing_file) - 1  # sans l'en-tête
+        if existing_rows > len(data):
+            raise RuntimeError(
+                f"Régression détectée pour {currency} : {len(data)} lignes "
+                f"calculées contre {existing_rows} lignes existantes dans "
+                f"{output_file}. Sauvegarde refusée."
+            )
     
     # Trier par series_id puis par date
     sorted_data = sorted(data, key=lambda x: (x['series_id'], x['date']))
@@ -313,6 +334,21 @@ def save_final_data(currency, data):
 def complete_all_data():
     """Complète les données pour toutes les devises"""
     currencies = ["EUR", "GBP", "JPY", "CHF", "CAD", "AUD", "NZD", "CNY"]
+    
+    # Pré-vol (all-or-nothing) : TOUTES les sources doivent exister
+    # AVANT la moindre écriture de history.csv.
+    missing_sources = [
+        os.path.join(CLEANED_DIR, currency, "history_cleaned.csv")
+        for currency in currencies
+        if not os.path.exists(
+            os.path.join(CLEANED_DIR, currency, "history_cleaned.csv")
+        )
+    ]
+    if missing_sources:
+        raise FileNotFoundError(
+            "Sources history_cleaned.csv manquantes (aucune écriture "
+            "effectuée) : " + ", ".join(missing_sources)
+        )
     
     print("=" * 80)
     print("COMPLÉTION DES DONNÉES ÉCONOMIQUES")
