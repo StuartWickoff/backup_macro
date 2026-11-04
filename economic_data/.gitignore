@@ -1,0 +1,26 @@
+# Ignorer les fichiers temporaires et caches
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Ignorer les fichiers de configuration locaux
+.env
+.env.local
+.env.*.local
+
+# Ignorer les fichiers de log
+*.log
+
+# Ignorer les dossiers de téléchargement temporaire
+temp/
+tmp/
+
+# Ignorer les fichiers de backup
+*.bak
+*.backup
+
+# Ignorer les fichiers système
+.DS_Store
+Thumbs.db
